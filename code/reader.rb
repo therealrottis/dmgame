@@ -82,7 +82,7 @@ class Reader
     [elements, elementprops]
   end
 
-  DATA_FOLDER = "../data/"
-  VIEW_FOLDER = "../views/"
-  CONFIG_FOLDER = "../"  
+  DATA_FOLDER = "data/"
+  VIEW_FOLDER = "views/"
+  CONFIG_FOLDER = ""  
 end

@@ -1,17 +1,11 @@
-require_relative "entity"
-require_relative "engine"
-require_relative "item"
-require_relative "config"
-require_relative "console"
-require_relative "inventory"
-require_relative "reader"
-require_relative "converter"
-require_relative "input"
-require_relative "math_helpers"
-require_relative "menus"
-require_relative "wall"
-require_relative "room"
-require_relative "virtual_weapon"
+["entity", "engine", "item", 
+  "config", "console", "inventory", 
+  "reader", "converter", "input", 
+  "math_helpers", "menus", "wall", 
+  "room", "virtual_weapon"].each do |codefile|
+  require_relative("code/" + codefile)
+end
+
 ["curses"].each do |dependency|
   begin
     gem dependency
@@ -62,7 +56,7 @@ def main
       end
     end
   ensure
-    Curses.close_screen
+    Curses.close_screen 
   end
 end
 

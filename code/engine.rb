@@ -60,8 +60,8 @@ class GameEngine
     Curses.addstr("*" * Curses.cols)
     
     (@@board_top_wall..@@board_bottom_wall).each do |y|
-      render_char_at(y, 0, "*")
-      render_char_at(y, Curses.cols - 1, "*")
+      render_char_at([y, 0], "*")
+      render_char_at([y, Curses.cols - 1], "*")
     end
   end
 

@@ -112,7 +112,10 @@ class Entity
       found_entity = nil
       @@entities.each do |entity|
         if MathHelpers.fast_distance(entity.pos, pos) < 3 && entity != self
-          found_entity = entity
+          if entity.interactable?
+            found_entity = entity
+            break
+          end
         end
       end
 
@@ -156,6 +159,10 @@ class Entity
         @x = ogx
       end
     end
+  end
+
+  def interactable?
+    return property(:lootable) || false
   end
 
   def interact(entity)
