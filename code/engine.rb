@@ -5,6 +5,7 @@ class GameEngine
   @@clearqueue = []
   @@board_margin_top = 1
   @@board_margin_bottom = 5
+  @@top_text = ""
 
   def self.calculate_corners
     @@board_left_wall =           1
@@ -73,13 +74,6 @@ class GameEngine
     Curses.setpos(0, 0)
     Curses.addstr(" " * Curses.cols)
     Curses.setpos(0, (Curses.cols - text.length) / 2)
-    Curses.addstr(text.to_s)
-  end
-
-  def self.show_at_bottom(text)
-    Curses.setpos(Curses.lines - 1, 0)
-    Curses.addstr(" " * Curses.cols)
-    Curses.setpos((Curses.lines - 1), (Curses.cols - text.length) / 2)
     Curses.addstr(text.to_s)
   end
 
@@ -154,6 +148,16 @@ class GameEngine
   
     #inv
     render_array_in_area(player.inventory_text, @@inv_top_left, @@inv_bot_right)
+
+    #top text, not really player stuff but ehh...
+    if !@@top_text.nil?
+      show_at_top(@@top_text)
+    end
+  end
+
+  def self.alert=(text)
+    @@top_text = text
+    show_at_top(@@top_text)
   end
 
   def self.camera_pos

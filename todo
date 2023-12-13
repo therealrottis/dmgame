@@ -23,5 +23,9 @@ Item.weapontxt => Item.weapontxt(max_wid)?
 yield action (@weapon / item.sell)
 
 - Menu.shop(items)
-TODO: class Path, class Pathfinder
+
+-class Path
+
+-module Pathfinder
+
 https://ruby-doc.org/stdlib-2.1.0/libdoc/curses/rdoc/Curses.html

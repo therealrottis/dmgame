@@ -4,7 +4,12 @@ class Menus
     GameEngine.menu_y = 0
     menu, props = Reader.read(menu_name)
     ogmenu = menu
-    if menu_name == "config"
+    if menu_name == "menu"
+      menu << ""
+      menu << "version " + Config.version
+      val2 = props[:options]
+      val1 = val2 - 1
+    elsif menu_name == "config"
       displayrows, settings_rows = Reader.read_config(menu_name)
       menu += displayrows
       props[:settings_rows] = settings_rows
@@ -21,7 +26,6 @@ class Menus
       val1 = val2 - 1
     end
     input = ""
-    selected = 0
     while input != 3
       GameEngine.render_menu(menu, selected * props[:optiongap] + props[:optionstart], props[:optionstart])
       input = Curses.getch

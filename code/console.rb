@@ -86,15 +86,16 @@ class Console
 
   def self.get_command(player)
     string = Input.get_input
+    GameEngine.alert = ""
     return if string == :abort
     run(string.delete("/").chomp, player)
   end
 
   def self.not_allowed_message
-    GameEngine.show_at_top("Cheats are not enabled")
+    GameEngine.alert = "Cheats are not enabled"
   end
 
   def self.command_failed_message
-    GameEngine.show_at_top("Improper command")
+    GameEngine.alert = "Improper command"
   end
 end

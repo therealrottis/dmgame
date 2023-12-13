@@ -76,7 +76,7 @@ def game
   while char != 3 # 3 == ctrl+c
     if char == "/" || char == Config.get(:key_chat)
       Curses.timeout = -1
-      GameEngine.show_at_top("PAUSED")
+      GameEngine.alert = "PAUSED"
       val = Console.get_command(player)
       if val == :want_exit
         return
@@ -85,7 +85,6 @@ def game
       player.action(char)
     end
     Curses.timeout = 100
-    GameEngine.show_at_top("")
 
     GameEngine.render
     char = Curses.getch

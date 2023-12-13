@@ -1,8 +1,7 @@
-class Config
-  @@config = Hash.new
-
+module Config
   def self.load_config
     @@config = Reader.load_config
+    @@version = Reader.get_version
   end
 
   def self.save_config(hash)
@@ -28,5 +27,9 @@ class Config
 
   def self.allowed(key)
     return @@config[key]
+  end
+
+  def self.version
+    @@version
   end
 end

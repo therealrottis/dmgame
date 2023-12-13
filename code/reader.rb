@@ -1,5 +1,5 @@
 # reads menu files
-class Reader
+module Reader
   def self.read(name)
     name = VIEW_FOLDER + name + ".view"
     if File.exist?(name)
@@ -82,7 +82,12 @@ class Reader
     [elements, elementprops]
   end
 
+  def self.get_version
+    return File.read(VERSION_FOLDER + "version")
+  end
+
   DATA_FOLDER = "data/"
   VIEW_FOLDER = "views/"
   CONFIG_FOLDER = ""  
+  VERSION_FOLDER = ""
 end

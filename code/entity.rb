@@ -207,7 +207,8 @@ class Entity
       Entity.new(:loot, @x, @y, :inventory => @inventory.random_declutter)
     end
     if @type == :player
-      GameEngine.show_at_top("Game over")
+      GameEngine.alert = "Game over"
+      2.times { sleep(0.2); Curses.flash }
       @reject_move = true # doesnt need to be for all entities: others aren't looped through anymore (ln +2)
     end
     @@entities.delete(self)
@@ -234,13 +235,11 @@ class Entity
   end
 
   def self.next_char(char)
-    case char
-    when "-" then "="
-    when "=" then "¤"
-    when "¤" then "#"
-    when "#" then "@"
-    when "@" then "#"
-    end
+    {"-" => "=",
+     "=" => "¤",
+     "¤" => "#",
+     "#" => "@",
+     "@" => "#"}[char]
   end
 
   def time_until_next_attack
