@@ -1,0 +1,16 @@
+Settings
+
+
+Save and Exit
+
+Exit without saving
+
+Add entry
+
+Remove entry
+ 
+--PROPS--
+options=4
+optionstart=4
+optiongap=2
+optiontexts=[settings_save_exit,settings_exit,settings_add_setting,settings_remove_setting]

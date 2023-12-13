@@ -1,0 +1,18 @@
+ _____   ___  ___  ___ _____ 
+|  __ \ / _ \ |  \/  ||  ___|
+| |  \// /_\ \| .  . || |__  
+| | __ |  _  || |\/| ||  __| 
+| |_\ \| | | || |  | || |___ 
+ \____/\_| |_/\_|  |_/\____/ 
+                             
+                             
+Play
+
+Settings
+
+Quit
+--PROPS--
+options=3
+optionstart=9
+optiongap=2
+optiontexts=[play,settings,quit]

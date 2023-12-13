@@ -1,0 +1,9 @@
+goblin-inventory=coins,weapon=dagger,speed=1
+soldier-inventory=coins,weapon=sword,speed=2,view_distance=15
+smith-inventory=coins,weapon=hammer,speed=2
+daniel-inventory=danielmoment,weapon=dagger,speed=0.5
+player-char=#
+loot-char=@,lootable,invulnerable,no_move
+randomloot-char=@,lootable,inventory=random,invulnerable,no_move
+bomb-char_from_timer,invulnerable,no_move,no_drop,volatile,explosion_damage=50,explosion_radius=8,explosion_timer=5,explosion_hits=10000
+explosion_effects-invulnerable,no_move,no_drop,lifetime=3
