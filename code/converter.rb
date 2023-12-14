@@ -105,4 +105,37 @@ module Converter
 
     return convert_array(value, **flags)
   end
+  
+  def self.compact_number(num)
+    if num < 0
+      sign = -1
+      num *= -1
+    else
+      sign = 1
+    end
+    postfixes = ["", "k", "M", "B", "Qu", "Qi"]
+    postfix_ind = 0
+    while num >= 1000
+      postfix_ind += 1
+      num /= 1000
+    end
+    return (sign*num).to_s + postfixes[postfix_ind]
+  end
+  
+  def self.substitute(array, props)
+    fill_replace_char = props[:fill_replace_char] ||  throw("converter.substitute: f_r_c not defined")
+    fill_char = props[:fill_char] ||                  throw("converter.substitute: f_c not defined")
+    fill_width = props[:fill_width] ||                throw("converter.substitute: f_wid not defined")
+    array.each do |row|
+      if row.include?(fill_replace_char)
+        row_width = row.length
+        if row_width > fill_width
+          puts("minor: converter.substitute; row_wid not enough for row #{row}")
+          next
+        end
+        row.gsub!(fill_replace_char, fill_char * (fill_width - row_width))
+      end
+    end
+    array
+  end
 end

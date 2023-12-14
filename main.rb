@@ -10,7 +10,7 @@ end
   begin
     gem dependency
   rescue Gem::LoadError => e
-    puts("Missing dependency \"#{dependency}\". Attempting install...")
+    puts("Missing dependency \"#{dependency}\". Attempting install... (may take multiple minutes, be patient)")
     Gem.install(dependency)
     gem dependency
   end
@@ -29,11 +29,25 @@ def do_something(text)
   print("done in #{((get_time-st).round(3)*1000).to_i}ms.\n")
 end
 
+def resolution_check
+  if Curses.cols < 80
+    puts("The game can't run properly on too low resolutions")
+    puts("Increase your console width to above 80")
+    exit()
+  end
+  if Curses.lines < 20
+    puts("The game can't run properly on too low resolutions")
+    puts("Increase your console height to above 20")
+    exit()
+  end
+end
+
 def main
   puts("Starting game...")
   st = get_time
-  
+
   do_something("Initializing engine") { GameEngine.init }
+  resolution_check
   do_something("Loading config") { Config.load_config }
   do_something("Loading items") { Item.load_items }
   do_something("Loading entities") { Entity.load_entities }
@@ -50,6 +64,9 @@ def main
       when "settings" 
         Menus.settings
         last_selected = 1
+      when "about"
+        Menus.about
+        last_selected = 2
       when "play" 
         game
         last_selected = 0
@@ -75,14 +92,16 @@ def game
     if char == "/" || char == Config.get(:key_chat)
       Curses.timeout = -1
       GameEngine.alert = "PAUSED"
-      val = Console.get_command(Entity.player)
+      GameTime.pause_time
+      val = Console.get_command
+      GameTime.unpause_time
       if val == :want_exit
         return
       end
     elsif char.class == String
       Entity.player.action(char)
     end
-    Curses.timeout = 100
+    Curses.timeout = 50
 
     GameEngine.render
     char = Curses.getch

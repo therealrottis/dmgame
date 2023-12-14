@@ -34,14 +34,4 @@ module MathHelpers
   def self.if_positive(num)
     return num > 0 ? num : 0
   end
-
-  def self.compact_number(num)
-    postfixes = ["", "k", "M", "B", "Qu", "Qi"]
-    postfix_ind = 0
-    while num >= 1000
-      postfix_ind += 1
-      num /= 1000
-    end
-    return num.to_s + postfixes[postfix_ind]
-  end
 end

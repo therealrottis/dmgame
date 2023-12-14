@@ -1,18 +1,25 @@
-class Console
-  def self.run(command, player)
+module Console
+  def self.needs_cheats(show_message = true)
+    if Config.allowed(:cheats)
+      yield
+    else
+      Console.not_allowed_message if show_message
+    end
+  end
+
+  def self.run(command)
+    player = Entity.player
     begin
       command = command.split(" ")
       case command[0]
       when "spawn"
-        if Config.allowed(:cheats)
+        needs_cheats do
           return unless Entity.exists?(command[1])
           if command.length == 2
             Entity.new(command[1], *player.pos.reverse)
           else
             Entity.new(*command[1..-1])
           end
-        else
-          Console.not_allowed_message
         end
       when "showcorner"
         GameEngine.render_corners
@@ -21,11 +28,9 @@ class Console
       when "exit"
         return :want_exit
       when "give"
-        if Config.allowed(:cheats)
+        needs_cheats do
           return unless Item.exists?(command[1])
           player.inventory << Item.new(*command[1..-1])
-        else
-          Console.not_allowed_message
         end
       when "weaponselect"
         player.player_select_weapon
@@ -34,13 +39,18 @@ class Console
       when "ws"
         player.player_select_weapon
       when "wpn"
-        if Config.allowed(:cheats)
+        needs_cheats(false) do
           a = Item.new(*command[1..-1])
           player.inventory << a
         end
         player.set_weapon(command[1])
       when "swarm"
-        if Config.allowed(:cheats)
+        needs_cheats do
+          if command.length == 2
+            entity_type = "goblin"
+          else
+            entity_type = command[2]
+          end
           count = 10
           if command.length == 2
             count = command[1].to_i
@@ -55,13 +65,13 @@ class Console
               npos[0] += xd
               npos[1] += yd
               if MathHelpers.pytaghoras(xd, yd) > 5
-                entity = Entity.new("goblin", *npos.reverse)
+                entity = Entity.new(entity_type, *npos.reverse)
               end
             end
           end
-        else
-          Console.not_allowed_message
         end
+      when "fireworks"
+        run("swarm 10 firework")
       when "cam"
         GameEngine.set_camera(*command[1..-1])
       when "cammove"
@@ -76,7 +86,7 @@ class Console
       when "damage"
         player.take_damage(command[1].to_i.abs)
       when "respawn"
-        if Config.allowed(:cheats)
+        needs_cheats do
           if Entity.player.dead?
             ppos = Entity.player.pos.reverse  
             Entity.delete_entity(Entity.player)            
@@ -92,11 +102,11 @@ class Console
     end
   end
 
-  def self.get_command(player)
+  def self.get_command
     string = Input.get_input
     GameEngine.alert = ""
     return if string == :abort
-    run(string.delete("/").chomp, player)
+    run(string.delete("/").chomp.downcase)
   end
 
   def self.not_allowed_message

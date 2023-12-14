@@ -23,6 +23,9 @@ entities.dat
 
   lifetime=1.5 # time until death after create (default=false)
   particle # is particle? (default=false)
+  rand_timer_add=500 # in ms, random move_at timer add on init (default=0) 
+  walk_dir=6 # 0..8, dir to automove in on move (0246 rdlu 1357 ru rd ld lu)
+  autowalk # if true, automatically moves every 0.8s in move_dir
 
 items.dat
   shiny # unused

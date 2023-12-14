@@ -22,11 +22,9 @@ class GameEngine
     @@board_wall_bottom_left =    [@@board_bottom_wall + 1, 0]
     @@inv_top_left =              [@@board_bottom_wall + 2, Curses.cols / 3 * 2 + 1]
     @@inv_bot_right =             [Curses.lines - 2, Curses.cols - 2]
-    @@menu_top_left =             @@board_top_left.dup
-    @@menu_top_left[1] +=         2
-    @@menu_bottom_right =         @@board_bottom_right.dup
-    @@menu_bottom_right[1] -=     2
-    @@menu_height =               @@board_bottom_wall - @@board_top_wall
+    @@menu_top_left =             [0, 2]
+    @@menu_bottom_right =         [Curses.lines - 2, Curses.cols - 2]
+    @@menu_height =               @@menu_bottom_right[0] - @@menu_top_left[0]
     @@weapon_display =            @@board_bottom_left.dup
     @@weapon_display[0] +=        2 
     @@weapon_display[1] +=        1
@@ -39,6 +37,7 @@ class GameEngine
     @@annoying_console_wall[1] += 1  
     @@horiz_margin =              @@board_width / 15 + 3
     @@verti_margin =              @@board_height / 10 + 2
+    @@console_start =             [Curses.lines - 2, 1]
   end
 
   def self.render_corners
@@ -67,7 +66,7 @@ class GameEngine
   end
 
   def self.set_cursor_bottom_left
-    Curses.setpos(Curses.lines - 2, 1)
+    Curses.setpos(*@@console_start)
   end
   
   def self.show_at_top(text)
@@ -95,9 +94,7 @@ class GameEngine
     end
 
     if x2 < x1 || y2 < y1
-      puts("bad render check: #{wall.top_left}, #{wall.bot_right}, cam=#{camera_pos}, coords=#{[x1, x2, y1, y2].join(", ")}")
-      puts("bwid:#{@@board_width}, bhgt:#{@@board_height}")
-      return
+      return # room not in frame
     end
 
     string = wall.material * (x2 - x1 + 1)
@@ -109,16 +106,31 @@ class GameEngine
   end
 
   def self.room_in_frame(room)
-    a = @@cam_x <= room.right_wall
-    b = @@cam_y + @@board_height > room.top_wall
-    c = @@cam_x + @@board_width > room.left_wall
-    d = @@cam_y <= room.bot_wall
-    return (a && b) || (b && c) || (c && d) || (d && a)
+    y1, x1 = tweak_pos_to_frame(room.top_left)
+    y2, x2 = tweak_pos_to_frame(room.bot_right)
+
+    if @@board_left_wall > x1 # board edge seinän keskellä x4
+      x1 = @@board_left_wall
+    end
+    if @@board_right_wall < x2
+      x2 = @@board_right_wall
+    end
+    return false if x2 < x1
+
+    if @@board_top_wall > y1
+      y1 = @@board_top_wall
+    end
+    if @@board_bottom_wall < y2
+      y2 = @@board_bottom_wall
+    end
+    return false if y2 < y1
+
+    true
   end
 
   def self.render_room(room)
-    room.walls.each do |wall|
-      if room_in_frame(wall)
+    if room_in_frame(room)
+      room.walls.each do |wall|
         render_wall(wall)
       end
     end
@@ -198,8 +210,7 @@ class GameEngine
     end
   end
 
-  def self.in_frame(pos)
-    y, x = pos
+  def self.in_frame(y, x)
     return @@board_left_wall <= x && @@board_right_wall >= x && @@board_top_wall <= y && @@board_bottom_wall >= y
   end
 
@@ -208,19 +219,19 @@ class GameEngine
   end
 
   def self.render_entities
-    Entity.old_entities.each do |old_entity|
-      old_entity = tweak_pos_to_frame(old_entity)
-      if in_frame(old_entity)
-        GameEngine.render_char_at(old_entity, " ")
+    Entity.old_entities.each do |pos|
+      pos = tweak_pos_to_frame(pos)
+      if in_frame(*pos)
+        GameEngine.render_char_at(pos, " ")
       end
     end
-    Entity.clear_old_entities # remove artifacts of old entities
+    Entity.clear_old_entities # clear @@old_entities
     
     already_rendered = Set.new
     priorities = Hash.new
     Entity.entities.each do |entity|
       pos = tweak_pos_to_frame(entity.pos)
-      if in_frame(pos)
+      if in_frame(*pos)
         if already_rendered.include?(pos)
           if entity.render_priority > priorities[pos]
             render_char_at(pos, entity.char)
@@ -286,7 +297,7 @@ class GameEngine
           puts("failure while rendering array")
           return
         end
-        return if cy >= y2
+        return if cy > y2
         Curses.setpos(cy, cx)
         Curses.addstr(cur.to_s)
         if crowsize != rowsize
@@ -356,25 +367,40 @@ class GameEngine
     @@menu_y = value
   end
 
-  def self.render_menu(menu, selected, first_option)
-    clear_queue
-    if selected <= @@menu_y
-      @@menu_y = selected - 2
-      if @@menu_y < 0
-        @@menu_y = 0
-      end
-      if @@menu_y < first_option
-        @@menu_y = 0
-      end
-      Curses.clear
-    elsif selected > @@menu_y + @@menu_height
-      @@menu_y = selected - @@menu_height
-      Curses.clear
+  def self.move_menu(dir, menu_size)
+    return if menu_size < @@menu_height # never move menu if it fits on screen
+    @@menu_y += dir
+    if @@menu_y < 0
+      @@menu_y = 0
+    elsif @@menu_y + @@menu_height > menu_size
+      @@menu_y = menu_size - @@menu_height
     end
+    Curses.clear
+  end
+
+  def self.render_menu(menu, selected = nil, first_option = nil)
+    clear_queue
     render_array_in_area(menu[@@menu_y..(@@menu_y + @@menu_height)], @@menu_top_left, @@menu_bottom_right, :force_newline)
-    render_selected(selected - @@menu_y)
+    
+    unless selected.nil?
+      if selected <= @@menu_y
+        @@menu_y = selected - 2
+        if @@menu_y < 0
+          @@menu_y = 0
+        end
+        if @@menu_y < first_option
+          @@menu_y = 0
+        end
+        Curses.clear
+      elsif selected > @@menu_y + @@menu_height
+        @@menu_y = selected - @@menu_height
+        Curses.clear
+      end
+      render_selected(selected - @@menu_y)
+    end
+
+    GameEngine.render_char_at(@@console_start, " ")
     set_cursor_bottom_left
-    #GameEngine.render_char_at(bottom_l, " ")
 
     Curses.refresh
   end

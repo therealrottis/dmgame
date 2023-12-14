@@ -75,14 +75,17 @@ class Item
   end
 
   def damagetxt
-    dmg = @@itemprops[@type][:damage]
-    if dmg.nil? 
-      return 1
-    elsif dmg.class == Integer
-      return dmg
-    else
-      return dmg.join("-")
+    if @damagetxt_cache.nil?
+      dmg = @@itemprops[@type][:damage]
+      if dmg.nil? 
+        return "1"
+      elsif dmg.class == Integer
+        return Converter.compact_number(dmg)
+      else
+        return dmg.map { |n| Converter.compact_number(n) }.join("-")
+      end
     end
+    @damagetxt_cache
   end
 
   def property(prop)
@@ -108,14 +111,21 @@ class Item
     if @weapontxt.nil?
       @weapontxt = "#{@type}: #{damagetxt} damage, #{range} range, #{hits} hits, #{cooldown} cooldown"
     end
-    text_width -= @weapontxt.length
-    if text_width <= 0 # means didnt fit, make weapontxt shorter
+    
+    bar_width = text_width - @weapontxt.length
+    if bar_width <= 5 # means didnt fit, make weapontxt shorter
       @weapontxt = "wpn: #{damagetxt} dmg, #{range} range, #{hits} hits, #{cooldown} cd"
     end
+
+    bar_width = text_width - @weapontxt.length
+    if bar_width <= 5 # still didnt fit, make weapontxt even shorter
+      @weapontxt = "#{damagetxt} dmg #{range} rg"
+    end
+
     if @inventory.owner.nil?
       cd_bar = ""
     else
-      cd_bar = @inventory.owner.time_until_next_attack(text_width)
+      cd_bar = @inventory.owner.time_until_next_attack(bar_width)
     end
     
     return cd_bar + @weapontxt

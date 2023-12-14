@@ -61,7 +61,7 @@ class Entity
   def move_if_available
     return if @type == :player
     if property(:volatile)
-      explode_if_can
+      return if explode_if_can
     end
     if !@die_at.nil?
       if lifetime <= 0
@@ -71,7 +71,7 @@ class Entity
     #     v :stop_iter (antioptimisation)
     return if @move_available_at > GameTime.time
     return if property(:no_move)
-    if property(:particle)
+    if property(:particle) || property(:autowalk)
       @move_available_at = GameTime.time + @walk_speed
       movement = @walk_dir
 
@@ -94,10 +94,12 @@ class Entity
 
   def explode_if_can
     return unless property(:volatile)
-    if @move_available_at < GameTime.time
+    if @explode_at < GameTime.time
       explode
       die
+      true
     end
+    false
   end
 
   def lifetime
@@ -308,7 +310,7 @@ class Entity
   end
 
   def timer_to_char
-    (@move_available_at - GameTime.time + 1).to_i.to_s[-1]
+    (@explode_at - GameTime.time + 1).to_i.to_s[-1]
   end
 
   def char
@@ -356,6 +358,10 @@ class Entity
     @@entityprops[@type][prop]
   end
 
+  def possible_random_timer
+    rand(0..(property(:rand_timer_add) || 0) / 1000.0)
+  end
+
   def initialize(type, x, y, **flags)
     @id = @@id
     @@id += 1
@@ -388,10 +394,9 @@ class Entity
     @type = type.to_sym
     @next_attack_at = 0
     if property(:volatile)
-      @move_available_at = GameTime.time + property(:explosion_timer)
-    else
-      @move_available_at = 0
+      @explode_at = GameTime.time + property(:explosion_timer) + possible_random_timer
     end
+    @move_available_at = 0
     @last_enemy = nil
     
     if property(:lifetime)
@@ -403,7 +408,12 @@ class Entity
     if property(:particle)
       @walk_dir = flags[:dir]
       @walk_speed = property(:lifetime).to_f / flags[:explosion_radius]
-      
+    elsif property(:autowalk)
+      @walk_dir = property(:walk_dir)
+      @walk_speed = 0.8
+    end
+    
+    unless @walk_dir.nil?
       if @walk_dir % 2 == 1 # diag
         @walk_speed *= 1.4
       end
@@ -450,7 +460,7 @@ class Entity
         puts("entity.hp_display: health (#{@health}) > max_health (#{@max_health}), please report this bug")
         return "hp > max_hp???"
       end
-      strend = " (#{@health}/#{@max_health})" 
+      strend = " #{Converter.compact_number(@health)}/#{Converter.compact_number(@max_health)}" 
       strstart = @type == :player ? "Your HP:  " : "Enemy HP: "
       bar_size -= strend.length + strstart.length
       if @health > 0
@@ -459,7 +469,7 @@ class Entity
       else
         str = "." * bar_size
       end
-      @hp_display_cache = strstart +  str + strend
+      @hp_display_cache = strstart + str + strend
       @oldhps = [@health, @max_health]
     end
     return @hp_display_cache

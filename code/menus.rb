@@ -1,4 +1,4 @@
-class Menus
+module Menus
   def self.menu(menu_name, selected = 0)
     Curses.clear
     GameEngine.menu_y = 0
@@ -53,10 +53,37 @@ class Menus
     exit # never used?
   end
 
+  def self.visual_menu(menu_name)
+    Curses.clear
+    GameEngine.menu_y = 0
+    menu, props = Reader.read(menu_name)
+    if props[:need_subst]
+      menu = Converter.substitute(menu, props)
+    end
+    input = ""
+    while input != 3
+      GameEngine.render_menu(menu)
+      input = Curses.getch
+
+      if input == Curses::KEY_DOWN || input == Config.get(:key_down)
+        GameEngine.move_menu(1, menu.length)
+      elsif input == Curses::KEY_UP || input == Config.get(:key_up)
+        GameEngine.move_menu(-1, menu.length)
+      elsif input == 10
+        return
+      end
+    end
+  end
+
   def self.main_menu(last_selected)
-    menu("menu", last_selected) do |props, selected|
+    menu("main_menu", last_selected) do |props, selected|
       return props[:optiontexts][selected]
     end
+  end
+
+  def self.about
+    visual_menu("about")
+    return
   end
 
   def self.settings
