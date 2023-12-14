@@ -2,7 +2,7 @@
   "config", "console", "inventory", 
   "reader", "converter", "input", 
   "math_helpers", "menus", "wall", 
-  "room", "virtual_weapon"].each do |codefile|
+  "room", "virtual_weapon", "time"].each do |codefile|
   require_relative("code/" + codefile)
 end
 
@@ -19,7 +19,7 @@ end
 puts("Dependencies loaded.")
 
 def get_time
-  Process.clock_gettime(Process::CLOCK_MONOTONIC)
+  GameTime.time
 end
 
 def do_something(text)
@@ -81,7 +81,7 @@ def game
       if val == :want_exit
         return
       end
-    else
+    elsif char.class == String
       player.action(char)
     end
     Curses.timeout = 100

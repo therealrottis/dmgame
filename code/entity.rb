@@ -35,6 +35,19 @@ class Entity
     @@entities << entity
   end
 
+  def self.dir_to_key(key)
+    Config.get(case key
+    when 0 then :key_right
+    when 2 then :key_down
+    when 4 then :key_left
+    when 6 then :key_up
+    when 1 then :key_ru
+    when 3 then :key_rd
+    when 5 then :key_ld
+    when 7 then :key_lu
+    end)
+  end
+
   def check_weapon
     if !own?(@weapon) || @weapon.count <= 0
       @weapon = nil
@@ -46,23 +59,45 @@ class Entity
     if property(:volatile)
       explode_if_can
     end
-    #     v :stop_iter (antioptimisation)
-    return if @last_move_at > Process.clock_gettime(Process::CLOCK_MONOTONIC)
-    return if property(:no_move)
-    @last_move_at = Process.clock_gettime(Process::CLOCK_MONOTONIC) + cooldown + rand(0..10)/50.to_f
-    #@@entities.delete(self)
-    #Entity.add_entity(self)
-    if MathHelpers.true_distance(self.pos, @@player.pos) <= view_distance# && @@player.los?(self)
-      action(Config.get(:key_right))
+    if !@die_at.nil?
+      if lifetime <= 0
+        die
+      end
     end
+    #     v :stop_iter (antioptimisation)
+    return if @move_available_at > GameTime.time
+    return if property(:no_move)
+    if property(:particle)
+      @move_available_at = GameTime.time + @walk_speed
+      movement = @walk_dir
+
+    elsif (d_to_player = MathHelpers.true_distance(self.pos, @@player.pos)) <= @weapon.range
+      @move_available_at = GameTime.time + cooldown + rand(0..10)/50.to_f
+      movement = Config.get(:key_right)
+
+    elsif d_to_player <= view_distance# && @@player.los?(self)
+      @move_available_at = GameTime.time + cooldown + rand(0..10)/50.to_f
+      movement = Config.get(:key_right)
+
+    else
+      @move_available_at = GameTime.time + cooldown + rand(0..10)/50.to_f
+      movement = Config.get(:key_attack)
+    end
+    
+    action(movement)
   end
 
   def explode_if_can
     return unless property(:volatile)
-    if @last_move_at < Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    if @move_available_at < GameTime.time
       explode
       die
     end
+  end
+
+  def lifetime
+    return 0 if @die_at.nil?
+    return @die_at - GameTime.time
   end
 
   def view_distance
@@ -108,6 +143,18 @@ class Entity
       @x += 1
     when Curses::KEY_RIGHT
       @x += 1
+    when Config.get(:key_lu)
+      @x -= 1
+      @y -= 1
+    when Config.get(:key_ru)
+      @x += 1
+      @y -= 1
+    when Config.get(:key_ld)
+      @x -= 1
+      @y += 1
+    when Config.get(:key_rd)
+      @x += 1
+      @y += 1
     when Config.get(:key_interact)
       found_entity = nil
       @@entities.each do |entity|
@@ -125,8 +172,8 @@ class Entity
     when Config.get(:key_attack)
       return if @weapon.nil?
       return @weapon.use if @weapon.property(:no_melee)
-      return if @next_attack_at > Process.clock_gettime(Process::CLOCK_MONOTONIC)
-      @next_attack_at = Process.clock_gettime(Process::CLOCK_MONOTONIC) + @weapon.cooldown
+      return if @next_attack_at > GameTime.time
+      @next_attack_at = GameTime.time + @weapon.cooldown
       attack_entities = []
       @@entities.each do |entity|
         if (d = MathHelpers.fast_distance(entity.pos, pos)) < @weapon.range && entity != self && !entity.property(:invulnerable)
@@ -198,7 +245,10 @@ class Entity
     @weapon = VirtualWeapon.new(self)
     action(Config.get(:key_attack))
     @weapon = nil
-    Entity.new(:explosion_effects, *self.pos, :explosion_radius => property(:explosion_radius))
+    #Entity.new(:explosion_effects, *self.pos.reverse, :explosion_radius => property(:explosion_radius))
+    8.times do |dir|
+      Entity.new(:explosion_effects, *self.pos.reverse, :explosion_radius => property(:explosion_radius), :dir => dir)
+    end
     die
   end
 
@@ -208,14 +258,15 @@ class Entity
     end
     if @type == :player
       GameEngine.alert = "Game over"
-      2.times { sleep(0.2); Curses.flash }
+      #2.times { sleep(0.2); Curses.flash }
       @reject_move = true # doesnt need to be for all entities: others aren't looped through anymore (ln +2)
     end
+    @@old_entities << self.pos
     @@entities.delete(self)
   end
 
   def pick_up(other)
-    self.inventory += other.inventory 
+    self.inventory += other.inventory
     other.inventory = Inventory.new()
     @@entities.delete(other)
     @@old_entities << other.pos
@@ -226,11 +277,11 @@ class Entity
   end
 
   def timer_to_char
-    (@next_attack_at - Process.clock_gettime(Process::CLOCK_MONOTONIC)).to_i.to_s
+    (@move_available_at - GameTime.time + 1).to_i.to_s[-1]
   end
 
   def char
-    timer_to_char if property(:char_from_timer)
+    return timer_to_char if property(:char_from_timer)
     property(:char) || "."
   end
 
@@ -243,7 +294,7 @@ class Entity
   end
 
   def time_until_next_attack
-    num = @next_attack_at - Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    num = @next_attack_at - GameTime.time
     if num <= 0
       return ""
     else
@@ -305,11 +356,28 @@ class Entity
     @type = type.to_sym
     @next_attack_at = 0
     if property(:volatile)
-      @last_move_at = Process.clock_gettime(Process::CLOCK_MONOTONIC) + property(:explosion_timer)
+      @move_available_at = GameTime.time + property(:explosion_timer)
     else
-      @last_move_at = 0
+      @move_available_at = 0
     end
     @last_enemy = nil
+    
+    if property(:lifetime)
+      @die_at = GameTime.time + property(:lifetime)
+    elsif property(:inherit_lifetime)
+      @die_at = GameTime.time + flags[:lifetime]
+    end
+
+    if property(:particle)
+      @walk_dir = flags[:dir]
+      @walk_speed = property(:lifetime).to_f / flags[:explosion_radius]
+      
+      if @walk_dir % 2 == 1 # diag
+        @walk_speed *= 1.4
+      end
+      @walk_dir = Entity.dir_to_key(@walk_dir)
+    end
+
     Entity.add_entity(self)
 
     if type == :player
