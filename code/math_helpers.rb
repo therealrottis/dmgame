@@ -20,10 +20,18 @@ module MathHelpers
   end
 
   def self.explosion_dmg_multiplier(pos1, pos2, expl_radius)
-    dmg = expl_radius/(true_distance(pos1, pos2))
-    if dmg > 1
-      dmg = 1
-    end
-    dmg
+    distance = true_distance(pos1, pos2)
+    
+    return 0 if distance > expl_radius # out of range
+    return 1 if distance <= 0 # delta = 0, on top of each other
+
+    percentage = distance / expl_radius.to_f 
+    # [0..1] distanc from center
+    # 1 - percentage = distance from edge
+    return 1 - percentage
+  end
+
+  def self.if_positive(num)
+    return num > 0 ? num : 0
   end
 end

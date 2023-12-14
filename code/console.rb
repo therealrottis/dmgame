@@ -75,6 +75,14 @@ class Console
         Entity.load_entities
       when "damage"
         player.take_damage(command[1].to_i.abs)
+      when "respawn"
+        if Config.allowed(:cheats)
+          if Entity.player.dead?
+            ppos = Entity.player.pos.reverse  
+            Entity.delete_entity(Entity.player)            
+            Entity.new(:player, *ppos)
+          end
+        end
       end
     rescue Exception => e
       if Config.get(:debug_mode)

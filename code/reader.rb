@@ -64,7 +64,7 @@ module Reader
     elementprops = Hash.new()
     items = File.read(file).split("\n")
     items.each do |item|
-      name, props = item.delete(" ").split("-")
+      name, props = item.delete(" ").split(";")
       name = name.to_sym
       elements << name
       elementprops[name] = Hash.new

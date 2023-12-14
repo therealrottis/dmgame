@@ -1,0 +1,9 @@
+# view files have two parts: view part and props part (separated by "--PROPS--")
+# view part is rendered as is
+# props part is interpreted row by row
+# each row is a flag
+
+options=4 # count of options
+optionstart=4 # row index of first option
+optiongap=2 # how many rows to jump on option change
+optiontexts=[a,b,c] # on select, optiontexts[selected] gets ran

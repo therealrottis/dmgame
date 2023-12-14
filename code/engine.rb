@@ -216,19 +216,20 @@ class GameEngine
     end
     Entity.clear_old_entities # remove artifacts of old entities
     
-    already_rendered = Hash.new
+    already_rendered = Set.new
+    priorities = Hash.new
     Entity.entities.each do |entity|
       pos = tweak_pos_to_frame(entity.pos)
       if in_frame(pos)
         if already_rendered.include?(pos)
-          already_rendered[pos] += 1
-          if already_rendered[pos] >= 10
-            already_rendered[pos] = 9
+          if entity.render_priority > priorities[pos]
+            render_char_at(pos, entity.char)
+            priorities[pos] = entity.render_priority
           end
-          render_char_at(pos, already_rendered[pos].to_s)
         else
           render_char_at(pos, entity.char)
-          already_rendered[pos] = 1
+          already_rendered << pos
+          priorities[pos] = entity.render_priority
         end
       end
     end

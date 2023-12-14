@@ -35,6 +35,10 @@ class Entity
     @@entities << entity
   end
 
+  def self.delete_entity(entity)
+    @@entities.delete(entity)
+  end
+
   def self.dir_to_key(key)
     Config.get(case key
     when 0 then :key_right
@@ -80,8 +84,9 @@ class Entity
       movement = Config.get(:key_right)
 
     else
-      @move_available_at = GameTime.time + cooldown + rand(0..10)/50.to_f
-      movement = Config.get(:key_attack)
+      return
+      #@move_available_at = GameTime.time + cooldown + rand(0..10)/50.to_f
+      #movement = Config.get(:key_attack)
     end
     
     action(movement)
@@ -112,6 +117,10 @@ class Entity
 
   def cooldown
     property(:cooldown) or 1
+  end
+
+  def team
+    property(:team) || 0
   end
 
   def aim_toward
@@ -173,10 +182,22 @@ class Entity
       return if @weapon.nil?
       return @weapon.use if @weapon.property(:no_melee)
       return if @next_attack_at > GameTime.time
+
+      wpnrange = @weapon.range
+      if property(:volatile)
+        wpnrange *= 1.41 # approx 2**(1/2)
+        # eplosions use true distance in damage calc
+        # wpnrange = 1 would miss diag enemies
+        # taking too many isn't a problem, explosives have usually 1k+ hits
+      end
+      
       @next_attack_at = GameTime.time + @weapon.cooldown
       attack_entities = []
       @@entities.each do |entity|
-        if (d = MathHelpers.fast_distance(entity.pos, pos)) < @weapon.range && entity != self && !entity.property(:invulnerable)
+        if (d = MathHelpers.fast_distance(entity.pos, pos)) < wpnrange && 
+          entity != self && 
+          !entity.property(:invulnerable) &&
+          entity.team != self.team
           attack_entities << [entity, d]
           #break if attack_entities.length >= @weapon.hits
           # grayed out: want to attack closest entity, not entity with lowest id
@@ -228,7 +249,12 @@ class Entity
     end
   end
 
+  def dead?
+    return @health <= 0
+  end
+
   def take_damage(damage)
+    return if damage <= 0
     if !property(:invulnerable)
       if @type == :player
         Curses.flash
@@ -238,6 +264,11 @@ class Entity
         die
       end
     end
+  end
+
+  def render_priority
+    #                             if has weapon: 100, else 0
+    property(:render_priority) || (!@weapon.nil? ? 100 : 0)
   end
 
   def explode
@@ -414,11 +445,15 @@ class Entity
 
   def hp_display(bar_size)
     if @hp_display_cache.nil? || @oldhps != [@health, @max_health]
+      if @health > @max_health
+        puts("entity.hp_display: health (#{@health}) > max_health (#{@max_health}), please report this bug")
+        return "hp > max_hp???"
+      end
       strend = " (#{@health}/#{@max_health})" 
       strstart = @type == :player ? "Your HP:  " : "Enemy HP: "
       bar_size -= strend.length + strstart.length
       if @health > 0
-        str = "#" * (bar_size * (@health.to_f / @max_health)).to_i
+        str = "#" * (bar_size * MathHelpers.if_positive(@health.to_f / @max_health)).to_i
         str += "." * (bar_size - str.length)
       else
         str = "." * bar_size

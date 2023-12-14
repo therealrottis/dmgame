@@ -2,7 +2,12 @@ class VirtualWeapon
   attr_reader :range, :hits, :cooldown
 
   def damage(other_entity_position)
-    (MathHelpers.explosion_dmg_multiplier(other_entity_position, @owner.pos, @range) * @damage).to_i
+    if @owner.property(:volatile)
+      (MathHelpers.explosion_dmg_multiplier(other_entity_position, @owner.pos, @range) * @damage).to_i
+    else
+      puts("virtual_weapon.damage not defined for #{@owner.type}")
+      return 1
+    end
   end
 
   def property(prop)

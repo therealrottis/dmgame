@@ -65,10 +65,8 @@ def game
 
   GameEngine.clear
 
-  if Entity.player_exists?
-    player = Entity.get_player
-  else
-    player = Entity.new(:player, 15, 15)
+  if !Entity.player_exists?
+    Entity.new(:player, 15, 15)
   end
 
   char = ""
@@ -77,12 +75,12 @@ def game
     if char == "/" || char == Config.get(:key_chat)
       Curses.timeout = -1
       GameEngine.alert = "PAUSED"
-      val = Console.get_command(player)
+      val = Console.get_command(Entity.player)
       if val == :want_exit
         return
       end
     elsif char.class == String
-      player.action(char)
+      Entity.player.action(char)
     end
     Curses.timeout = 100
 
