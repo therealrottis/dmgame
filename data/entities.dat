@@ -7,4 +7,4 @@ loot;char=@,lootable,invulnerable,no_move
 randomloot;char=@,lootable,inventory=random,invulnerable,no_move
 bomb;char_from_timer,invulnerable,no_move,no_drop,volatile,explosion_damage=50,explosion_radius=5,explosion_timer=5,explosion_hits=1000,render_priority=100
 explosion_effects;char=*,invulnerable,no_drop,lifetime=1,particle,render_priority=-100
-firework;char=t,invulnerable,walk_dir=6,autowalk,no_drop,volatile,explosion_hits=0,explosion_radius=25,explosion_timer=1.5,render_priority=100,rand_timer_add=500
+firework;char=t,invulnerable,walk_dir=6,autowalk,no_drop,volatile,explosion_hits=0,explosion_radius=25,explosion_timer=2,render_priority=100,rand_timer_add=500

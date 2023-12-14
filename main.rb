@@ -2,7 +2,8 @@
   "config", "console", "inventory", 
   "reader", "converter", "input", 
   "math_helpers", "menus", "wall", 
-  "room", "virtual_weapon", "time"].each do |codefile|
+  "room", "virtual_weapon", "time",
+  "path"].each do |codefile|
   require_relative("code/" + codefile)
 end
 

@@ -46,7 +46,7 @@ module Console
         player.set_weapon(command[1])
       when "swarm"
         needs_cheats do
-          if command.length == 2
+          if command.length < 3
             entity_type = "goblin"
           else
             entity_type = command[2]
@@ -71,7 +71,13 @@ module Console
           end
         end
       when "fireworks"
-        run("swarm 10 firework")
+        if command.length == 1
+          run("swarm 10 firework")
+        else
+          command[1].to_i.times do
+            run("swarm 10 firework")    
+          end
+        end
       when "cam"
         GameEngine.set_camera(*command[1..-1])
       when "cammove"

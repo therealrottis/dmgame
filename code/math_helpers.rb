@@ -1,10 +1,19 @@
 module MathHelpers
-  def self.fast_distance(pos1, pos2)
-    return (pos1[0] - pos2[0]).abs + (pos1[1] - pos2[1]).abs
+  # manhattan | euclid | chebyshev
+  # 2 1 2     | s 1 s  | 1 1 1
+  # 1 0 1     | 1 0 1  | 1 0 1
+  # 2 1 2     | s 1 s  | 1 1 1
+  #           s = sqrt(2)
+  def self.manhattan_distance(pos1, pos2) # diag = 2
+    (pos1[0] - pos2[0]).abs + (pos1[1] - pos2[1]).abs
   end
 
-  def self.true_distance(pos1, pos2)
-    return Math.sqrt((pos1[0] - pos2[0]).abs**2 + (pos1[1] - pos2[1]).abs**2)
+  def self.euclid_distance(pos1, pos2) # diag = 2**(1/2)
+    Math.sqrt((pos1[0] - pos2[0]).abs**2 + (pos1[1] - pos2[1]).abs**2)
+  end
+
+  def self.chebyshev_distance(pos1, pos2) # diag = 1
+    [(pos1[0] - pos2[0]).abs, (pos1[1] - pos2[1]).abs].max
   end
 
   def self.arrsum(arr1, arr2)
@@ -20,7 +29,7 @@ module MathHelpers
   end
 
   def self.explosion_dmg_multiplier(pos1, pos2, expl_radius)
-    distance = true_distance(pos1, pos2)
+    distance = euclid_distance(pos1, pos2)
     
     return 0 if distance > expl_radius # out of range
     return 1 if distance <= 0 # delta = 0, on top of each other

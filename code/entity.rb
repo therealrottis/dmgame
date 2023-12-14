@@ -40,16 +40,7 @@ class Entity
   end
 
   def self.dir_to_key(key)
-    Config.get(case key
-    when 0 then :key_right
-    when 2 then :key_down
-    when 4 then :key_left
-    when 6 then :key_up
-    when 1 then :key_ru
-    when 3 then :key_rd
-    when 5 then :key_ld
-    when 7 then :key_lu
-    end)
+    Path.dir_to_key(key)
   end
 
   def check_weapon
@@ -75,7 +66,7 @@ class Entity
       @move_available_at = GameTime.time + @walk_speed
       movement = @walk_dir
 
-    elsif (d_to_player = MathHelpers.true_distance(self.pos, @@player.pos)) <= @weapon.range
+    elsif (d_to_player = MathHelpers.euclid_distance(self.pos, @@player.pos)) <= @weapon.range
       @move_available_at = GameTime.time + cooldown + rand(0..10)/50.to_f
       movement = Config.get(:key_right)
 
@@ -94,16 +85,16 @@ class Entity
 
   def explode_if_can
     return unless property(:volatile)
-    if @explode_at < GameTime.time
+    if @explode_at <= GameTime.time
       explode
       die
-      true
+      return true
     end
     false
   end
 
   def lifetime
-    return 0 if @die_at.nil?
+    return 999 if @die_at.nil?
     return @die_at - GameTime.time
   end
 
@@ -169,7 +160,7 @@ class Entity
     when Config.get(:key_interact)
       found_entity = nil
       @@entities.each do |entity|
-        if MathHelpers.fast_distance(entity.pos, pos) < 3 && entity != self
+        if MathHelpers.manhattan_distance(entity.pos, pos) < 3 && entity != self
           if entity.interactable?
             found_entity = entity
             break
@@ -186,17 +177,17 @@ class Entity
       return if @next_attack_at > GameTime.time
 
       wpnrange = @weapon.range
-      if property(:volatile)
-        wpnrange *= 1.41 # approx 2**(1/2)
-        # eplosions use true distance in damage calc
-        # wpnrange = 1 would miss diag enemies
-        # taking too many isn't a problem, explosives have usually 1k+ hits
-      end
       
       @next_attack_at = GameTime.time + @weapon.cooldown
       attack_entities = []
+      if property(:volatile) # use chebyshev if explosive, we don't want to miss anything
+        distance_func = lambda { |a, b| MathHelpers.chebyshev_distance(a, b) }
+      else
+        distance_func = lambda { |a, b| MathHelpers.manhattan_distance(a, b) }
+      end
+
       @@entities.each do |entity|
-        if (d = MathHelpers.fast_distance(entity.pos, pos)) < wpnrange && 
+        if (d = distance_func.call(entity.pos, pos)) < wpnrange && 
           entity != self && 
           !entity.property(:invulnerable) &&
           entity.team != self.team
@@ -269,7 +260,7 @@ class Entity
   end
 
   def render_priority
-    #                             if has weapon: 100, else 0
+    #                             if is dangerous: 100, else 0
     property(:render_priority) || (!@weapon.nil? ? 100 : 0)
   end
 
@@ -359,7 +350,8 @@ class Entity
   end
 
   def possible_random_timer
-    rand(0..(property(:rand_timer_add) || 0) / 1000.0)
+    return 0 unless property(:rand_timer_add)
+    rand(0..(property(:rand_timer_add))) / 1000.0
   end
 
   def initialize(type, x, y, **flags)
@@ -394,7 +386,8 @@ class Entity
     @type = type.to_sym
     @next_attack_at = 0
     if property(:volatile)
-      @explode_at = GameTime.time + property(:explosion_timer) + possible_random_timer
+      @explode_at = GameTime.time + property(:explosion_timer) + possible_random_timer - 3
+                                            # don't ask me why -3, it just stopped working properly...
     end
     @move_available_at = 0
     @last_enemy = nil

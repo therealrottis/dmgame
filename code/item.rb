@@ -110,17 +110,24 @@ class Item
   def weapontxt(text_width)
     if @weapontxt.nil?
       @weapontxt = "#{@type}: #{damagetxt} damage, #{range} range, #{hits} hits, #{cooldown} cooldown"
+
+      bar_width = text_width - @weapontxt.length
+      if bar_width <= 5 # means didnt fit, make weapontxt shorter
+        @weapontxt = "wpn: #{damagetxt} dmg, #{range} range, #{hits} hits, #{cooldown} cd"
+      end
+
+      bar_width = text_width - @weapontxt.length
+      if bar_width <= 5 # means didnt fit, make weapontxt shorter
+        @weapontxt = "wpn: #{damagetxt} dmg, #{range} range, #{cooldown} cd"
+      end
+
+      bar_width = text_width - @weapontxt.length
+      if bar_width <= 5 # still didnt fit, make weapontxt even shorter
+        @weapontxt = "#{damagetxt} dmg #{range} rg"
+      end
     end
     
     bar_width = text_width - @weapontxt.length
-    if bar_width <= 5 # means didnt fit, make weapontxt shorter
-      @weapontxt = "wpn: #{damagetxt} dmg, #{range} range, #{hits} hits, #{cooldown} cd"
-    end
-
-    bar_width = text_width - @weapontxt.length
-    if bar_width <= 5 # still didnt fit, make weapontxt even shorter
-      @weapontxt = "#{damagetxt} dmg #{range} rg"
-    end
 
     if @inventory.owner.nil?
       cd_bar = ""
