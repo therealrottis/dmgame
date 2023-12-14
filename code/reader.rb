@@ -68,10 +68,13 @@ module Reader
       name = name.to_sym
       elements << name
       elementprops[name] = Hash.new
-      props.split(",").each do |prop|
+      # keep extra level, props is array but has no [] so we want an extra array level
+      # only split depth zero, keeps damage=[1,2] from splitting into weird props
+      props = Converter.convert(props, :keep_extra_level => true, :forbid_subarrays => true)
+      props.each do |prop|
         if prop.include?("=")
-          key, value = prop.split("=")
-          value = Converter.convert(value, true)
+          key, value = prop.split("=", 2) # split only by first = if used later
+          value = Converter.convert(value)
         else
           key = prop
           value = true

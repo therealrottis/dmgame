@@ -324,8 +324,9 @@ class Entity
      "@" => "#"}[char]
   end
 
-  def time_until_next_attack
+  def time_until_next_attack(wid)
     num = @next_attack_at - GameTime.time
+    bar_size = wid - 1
     if num <= 0
       return ""
     else

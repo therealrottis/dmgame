@@ -131,7 +131,7 @@ class GameEngine
     wtxt = case player.weapon
     when nil then "Weapon: none"
     else
-      player.time_until_next_attack + player.weapon.weapontxt
+      player.weapon.weapontxt(@@health_bar_size)
     end
     Curses.setpos(*@@weapon_display)
     Curses.addstr(wtxt)

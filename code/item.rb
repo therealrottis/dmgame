@@ -4,7 +4,7 @@ class Item
 
   @@items = nil
   @@itemprops = nil
-  @@resources
+  @@resources = nil
 
   def self.id_to_sym(id)
     return @@items[id]
@@ -104,11 +104,21 @@ class Item
     property(:cooldown) or 1
   end
 
-  def weapontxt
-    if @weapontext.nil?
-      @weapontxt = "Weapon: #{@type}, #{damagetxt} damage, #{range} range, #{hits} hits, #{cooldown} cooldown"
+  def weapontxt(text_width)
+    if @weapontxt.nil?
+      @weapontxt = "#{@type}: #{damagetxt} damage, #{range} range, #{hits} hits, #{cooldown} cooldown"
     end
-    return @weapontxt
+    text_width -= @weapontxt.length
+    if text_width <= 0 # means didnt fit, make weapontxt shorter
+      @weapontxt = "wpn: #{damagetxt} dmg, #{range} range, #{hits} hits, #{cooldown} cd"
+    end
+    if @inventory.owner.nil?
+      cd_bar = ""
+    else
+      cd_bar = @inventory.owner.time_until_next_attack(text_width)
+    end
+    
+    return cd_bar + @weapontxt
   end
 
   def initialize(type, count = 1)
