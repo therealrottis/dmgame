@@ -7,7 +7,7 @@
   require_relative("code/" + codefile)
 end
 
-["curses"].each do |dependency|
+["curses", ["priority_queue_cxx", "fc"]].each do |dependency, *rest|
   begin
     gem dependency
   rescue Gem::LoadError => e
@@ -15,7 +15,9 @@ end
     Gem.install(dependency)
     gem dependency
   end
-  require dependency
+  # normally gem name is same as what is used in require
+  # not for priority_queue
+  require (rest.length == 0 ? dependency : rest[0])
 end
 puts("Dependencies loaded.")
 
@@ -93,9 +95,7 @@ def game
     if char == "/" || char == Config.get(:key_chat)
       Curses.timeout = -1
       GameEngine.alert = "PAUSED"
-      GameTime.pause_time
-      val = Console.get_command
-      GameTime.unpause_time
+      val = Console.get_command # pauses time
       if val == :want_exit
         return
       end

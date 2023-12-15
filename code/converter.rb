@@ -138,4 +138,41 @@ module Converter
     end
     array
   end
+
+  def self.dir_to_sym(dir)
+    case dir
+    when 0 then :key_right
+    when 2 then :key_down
+    when 4 then :key_left
+    when 6 then :key_up
+    when 1 then :key_rd
+    when 3 then :key_ld
+    when 5 then :key_lu
+    when 7 then :key_ru
+    end
+  end
+
+  def self.dir_to_key(dir)
+    Config.get(dir_to_sym(dir))
+  end
+
+  def self.dir_to_yx_arr(dir)
+    case dir
+    when 0 then [0, 1]
+    when 1 then [1, 1]
+    when 2 then [1, 0]
+    when 3 then [1, -1]
+    when 4 then [0, -1]
+    when 5 then [-1, -1]
+    when 6 then [-1, 0]
+    when 7 then [-1, 1]
+    end
+  end
+
+  def self.path_reverse(array)
+    array.map { |n| 12 - n }
+    # Path.dirs opposites sum is always 12
+    # think of a dice, with 7 as the side sum
+    # dirs is a 2d dice with 8 sides
+  end
 end

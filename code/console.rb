@@ -99,6 +99,13 @@ module Console
             Entity.new(:player, *ppos)
           end
         end
+      when "path"
+        needs_cheats do
+          a = Path.new(Entity.player.pos, command[1..-1].map(&:to_i))
+          GameEngine.alert = a.to_s
+        end
+      when "pos"
+        GameEngine.alert = Entity.player.pos
       end
     rescue Exception => e
       if Config.get(:debug_mode)
@@ -109,7 +116,9 @@ module Console
   end
 
   def self.get_command
+    GameTime.pause_time
     string = Input.get_input
+    GameTime.unpause_time
     GameEngine.alert = ""
     return if string == :abort
     run(string.delete("/").chomp.downcase)

@@ -39,10 +39,6 @@ class Entity
     @@entities.delete(entity)
   end
 
-  def self.dir_to_key(key)
-    Path.dir_to_key(key)
-  end
-
   def check_weapon
     if !own?(@weapon) || @weapon.count <= 0
       @weapon = nil
@@ -68,11 +64,12 @@ class Entity
 
     elsif (d_to_player = MathHelpers.euclid_distance(self.pos, @@player.pos)) <= @weapon.range
       @move_available_at = GameTime.time + cooldown + rand(0..10)/50.to_f
-      movement = Config.get(:key_right)
+      movement = Config.get(:key_attack)
 
     elsif d_to_player <= view_distance# && @@player.los?(self)
       @move_available_at = GameTime.time + cooldown + rand(0..10)/50.to_f
-      movement = Config.get(:key_right)
+      @path.add_to_end(@@player.pos)
+      movement = @path.next
 
     else
       return
@@ -386,8 +383,7 @@ class Entity
     @type = type.to_sym
     @next_attack_at = 0
     if property(:volatile)
-      @explode_at = GameTime.time + property(:explosion_timer) + possible_random_timer - 3
-                                            # don't ask me why -3, it just stopped working properly...
+      @explode_at = GameTime.time + property(:explosion_timer) + possible_random_timer
     end
     @move_available_at = 0
     @last_enemy = nil
@@ -410,7 +406,7 @@ class Entity
       if @walk_dir % 2 == 1 # diag
         @walk_speed *= 1.4
       end
-      @walk_dir = Entity.dir_to_key(@walk_dir)
+      @walk_dir = Converter.dir_to_key(@walk_dir)
     end
 
     Entity.add_entity(self)
