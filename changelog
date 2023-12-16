@@ -1,3 +1,5 @@
+
+v0.1.2
 - made entity.y and x values floats behind the scenes
 - added double diagonal (30 degree) automovement to entities
 
