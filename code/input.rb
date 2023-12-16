@@ -16,13 +16,13 @@ class Input
       elsif char.class == String
         string += char
       else
-        string += ".." # korjaa combo desyncit (^T) (..)
+        string += "  " # korjaa combo desyncit (^T) (..)
       end
       Curses.setpos(Curses.lines - 2, string.length + 1)
       Curses.refresh
       char = Curses.getch
     end
     GameEngine.render_console_right_wall # need to fix the wall that has disappeared: \n gets echoed....
-    return string
+    return string.chomp
   end
 end

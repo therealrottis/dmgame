@@ -7,7 +7,7 @@ class Entity
   @@player = nil
 
   attr_accessor :inventory, :weapon
-  attr_reader :x, :y, :id, :type, :last_enemy, :last_move_at
+  attr_reader :id, :type, :last_enemy, :last_move_at
 
   def self.entities
     @@entities
@@ -59,15 +59,17 @@ class Entity
     return if @move_available_at > GameTime.time
     return if property(:no_move)
     if property(:particle) || property(:autowalk)
-      @move_available_at = GameTime.time + @walk_speed
-      movement = @walk_dir
+      @move_available_at = GameTime.time
+
+      movement = @step
 
     elsif (d_to_player = MathHelpers.euclid_distance(self.pos, @@player.pos)) <= @weapon.range
       @move_available_at = GameTime.time + cooldown + rand(0..10)/50.to_f
       movement = Config.get(:key_attack)
 
-    elsif d_to_player <= view_distance# && @@player.los?(self)
+    elsif d_to_player <= view_distance && !property(:ranged)# && @@player.los?(self)
       @move_available_at = GameTime.time + cooldown + rand(0..10)/50.to_f
+      @path = Path.new(pos, @@player.pos) if @path.nil?
       @path.add_to_end(@@player.pos)
       movement = @path.next
 
@@ -120,99 +122,111 @@ class Entity
     throw "NotImplementedError: entity.aim_torward"
   end
 
+  def x
+    @x.round
+  end
+
+  def y
+    @y.round
+  end
+
   def action(char)
     return if @reject_move
-    ogx = @x
-    ogy = @y
+    ogx = x
+    ogy = y
     @@old_entities << [y, x]
-    case char
-    when Config.get(:key_up)
-      @y -= 1
-    when Curses::KEY_UP
-      @y -= 1
-    when Config.get(:key_down)
-      @y += 1
-    when Curses::KEY_DOWN
-      @y += 1
-    when Config.get(:key_left)
-      @x -= 1
-    when Curses::KEY_LEFT
-      @x -= 1
-    when Config.get(:key_right)
-      @x += 1
-    when Curses::KEY_RIGHT
-      @x += 1
-    when Config.get(:key_lu)
-      @x -= 1
-      @y -= 1
-    when Config.get(:key_ru)
-      @x += 1
-      @y -= 1
-    when Config.get(:key_ld)
-      @x -= 1
-      @y += 1
-    when Config.get(:key_rd)
-      @x += 1
-      @y += 1
-    when Config.get(:key_interact)
-      found_entity = nil
-      @@entities.each do |entity|
-        if MathHelpers.manhattan_distance(entity.pos, pos) < 3 && entity != self
-          if entity.interactable?
-            found_entity = entity
-            break
+    if char.class == Array # specific movement: [1, 0] or [0.7, 0.7]
+      @y, @x = MathHelpers.arrsum(char, [@y, @x])
+    else
+      case char
+      when Config.get(:key_up)
+        @y -= 1
+      when Curses::KEY_UP
+        @y -= 1
+      when Config.get(:key_down)
+        @y += 1
+      when Curses::KEY_DOWN
+        @y += 1
+      when Config.get(:key_left)
+        @x -= 1
+      when Curses::KEY_LEFT
+        @x -= 1
+      when Config.get(:key_right)
+        @x += 1
+      when Curses::KEY_RIGHT
+        @x += 1
+      when Config.get(:key_lu)
+        @x -= 1
+        @y -= 1
+      when Config.get(:key_ru)
+        @x += 1
+        @y -= 1
+      when Config.get(:key_ld)
+        @x -= 1
+        @y += 1
+      when Config.get(:key_rd)
+        @x += 1
+        @y += 1
+      when Config.get(:key_interact)
+        found_entity = nil
+        @@entities.each do |entity|
+          if MathHelpers.manhattan_distance(entity.pos, pos) < 3 && entity != self
+            if entity.interactable?
+              found_entity = entity
+              break
+            end
           end
         end
-      end
 
-      if !found_entity.nil?
-        interact(found_entity)
-      end
-    when Config.get(:key_attack)
-      return if @weapon.nil?
-      return @weapon.use if @weapon.property(:no_melee)
-      return if @next_attack_at > GameTime.time
-
-      wpnrange = @weapon.range
-      
-      @next_attack_at = GameTime.time + @weapon.cooldown
-      attack_entities = []
-      if property(:volatile) # use chebyshev if explosive, we don't want to miss anything
-        distance_func = lambda { |a, b| MathHelpers.chebyshev_distance(a, b) }
-      else
-        distance_func = lambda { |a, b| MathHelpers.manhattan_distance(a, b) }
-      end
-
-      @@entities.each do |entity|
-        if (d = distance_func.call(entity.pos, pos)) < wpnrange && 
-          entity != self && 
-          !entity.property(:invulnerable) &&
-          entity.team != self.team
-          attack_entities << [entity, d]
-          #break if attack_entities.length >= @weapon.hits
-          # grayed out: want to attack closest entity, not entity with lowest id
+        if !found_entity.nil?
+          interact(found_entity)
         end
-      end
-      
-      attack_entities.sort_by { |a, b| b } # b = distance
-      attack_entities = attack_entities.map { |a, _| a }
-      
-      if attack_entities.length > @weapon.hits
-        attack_entities = attack_entities[0...(@weapon.hits)]
-      end
-      attack_entities.each do |entity|
-        attack(entity)
+      when Config.get(:key_attack)
+        return if @weapon.nil?
+        return @weapon.use if @weapon.property(:no_melee)
+        return if @next_attack_at > GameTime.time
+
+        wpnrange = @weapon.range
+        
+        @next_attack_at = GameTime.time + @weapon.cooldown
+        attack_entities = []
+        if property(:volatile) # use chebyshev if explosive, we don't want to miss anything
+          distance_func = lambda { |a, b| MathHelpers.chebyshev_distance(a, b) }
+        else
+          distance_func = lambda { |a, b| MathHelpers.manhattan_distance(a, b) }
+        end
+
+        @@entities.each do |entity|
+          if (d = distance_func.call(entity.pos, pos)) < wpnrange && 
+            entity != self && 
+            !entity.property(:invulnerable) &&
+            entity.team != self.team
+            attack_entities << [entity, d]
+            #break if attack_entities.length >= @weapon.hits
+            # grayed out: want to attack closest entity, not entity with lowest id
+          end
+        end
+        
+        attack_entities.sort_by { |a, b| b } # b = distance
+        attack_entities = attack_entities.map { |a, _| a }
+        
+        if attack_entities.length > @weapon.hits
+          attack_entities = attack_entities[0...(@weapon.hits)]
+        end
+        attack_entities.each do |entity|
+          attack(entity)
+        end
       end
     end
     
-    if (ogx != @x || ogy != @y)
-      if @type == :player && (ogx != @x || ogy != @y)
+    if (ogx != x || ogy != y)
+      if @type == :player
         GameEngine.move_if_necessary(pos)
       end
       if property(:has_collision)
         Room.cache_remove(ogy, ogx)
       end
-      if Room.walls_collide(@y, @x)
+      if Room.walls_collide(y, x)
         @y = ogy
         @x = ogx
       end
@@ -261,13 +275,17 @@ class Entity
     property(:render_priority) || (!@weapon.nil? ? 100 : 0)
   end
 
+  def particle_count
+    property(:particle_count) || 8
+  end
+
   def explode
     return unless property(:volatile)
     @weapon = VirtualWeapon.new(self)
     action(Config.get(:key_attack))
     @weapon = nil
     #Entity.new(:explosion_effects, *self.pos.reverse, :explosion_radius => property(:explosion_radius))
-    8.times do |dir|
+    (particle_count).times do |dir|
       Entity.new(:explosion_effects, *self.pos.reverse, :explosion_radius => property(:explosion_radius), :dir => dir)
     end
     die
@@ -275,7 +293,7 @@ class Entity
 
   def die
     unless property(:no_drop)
-      Entity.new(:loot, @x, @y, :inventory => @inventory.random_declutter)
+      Entity.new(:loot, x, y, :inventory => @inventory.random_declutter)
     end
     if @type == :player
       GameEngine.alert = "Game over"
@@ -356,22 +374,22 @@ class Entity
     @@id += 1
     @x = x.to_i
     @y = y.to_i
+
     c_iter = 1
     var = 0
-
     # makes so stuff doesnt spawn in walls: goes in spiral pattern
     # 7 8 9 10...
     # 6 1 2 
     # 5 4 3
-    while Room.walls_collide(@y, @x)
+    while Room.walls_collide(y, x)
       if var == 0
         @x += c_iter
       elsif var == 1
         @y += c_iter
       elsif var == 2
-        @x -= @c_iter
+        @x -= c_iter
       elsif var == 3
-        @y -= @c_iter
+        @y -= c_iter
       end
       if var % 2 == 1
         c_iter += 1
@@ -396,17 +414,21 @@ class Entity
 
     if property(:particle)
       @walk_dir = flags[:dir]
-      @walk_speed = property(:lifetime).to_f / flags[:explosion_radius]
+      step_size = (property(:lifetime).to_f * flags[:explosion_radius]) / TICKRATE
     elsif property(:autowalk)
       @walk_dir = property(:walk_dir)
-      @walk_speed = 0.8
+      step_size = 0.8 / TICKRATE
     end
     
     unless @walk_dir.nil?
-      if @walk_dir % 2 == 1 # diag
-        @walk_speed *= 1.4
+      @step = Converter.dir_to_yx_arr(@walk_dir).map { |n| n * step_size }
+      if @walk_dir < 8 # 8 squares around
+        if @walk_dir % 2 == 1 # only affect if diag 
+          @step = @step.map { |n| n * 0.7 } # 1 / (sqrt 2)
+        end
+      elsif @walk_dir < 16 # double diag
+        @step = @step.map { |n| n * 0.45 } # 1 / (sqrt 5)
       end
-      @walk_dir = Converter.dir_to_key(@walk_dir)
     end
 
     Entity.add_entity(self)
@@ -440,7 +462,7 @@ class Entity
   end
 
   def debug_display
-    puts("entity #{@id} at #{@x}, #{@y}, inventory=#{@inventory.map {|x|x.to_s}.to_s}")
+    puts("entity #{@id} at #{x}, #{y}, inventory=#{@inventory.map {|x|x.to_s}.to_s}")
   end
 
   def hp_display(bar_size)

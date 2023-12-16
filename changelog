@@ -1,3 +1,6 @@
+- made entity.y and x values floats behind the scenes
+- added double diagonal (30 degree) automovement to entities
+
 - fixed explosive timers on command (Time.time fix)
 - pathfinder working
 - dependency added: priority_queue_cxx

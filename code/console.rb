@@ -74,12 +74,12 @@ module Console
         if command.length == 1
           run("swarm 10 firework")
         else
-          command[1].to_i.times do
+          [command[1].to_i, 10].min.times do
             run("swarm 10 firework")    
           end
         end
       when "cam"
-        GameEngine.set_camera(*command[1..-1])
+        GameEngine.alert = "camera position: " + GameEngine.camera_pos.to_s
       when "cammove"
         if command.length == 2
           command << 0
@@ -105,7 +105,7 @@ module Console
           GameEngine.alert = a.to_s
         end
       when "pos"
-        GameEngine.alert = Entity.player.pos
+        GameEngine.alert = "player pos: " + Entity.player.pos.to_s
       end
     rescue Exception => e
       if Config.get(:debug_mode)

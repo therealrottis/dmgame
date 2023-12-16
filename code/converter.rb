@@ -158,14 +158,27 @@ module Converter
 
   def self.dir_to_yx_arr(dir)
     case dir
-    when 0 then [0, 1]
-    when 1 then [1, 1]
-    when 2 then [1, 0]
-    when 3 then [1, -1]
-    when 4 then [0, -1]
-    when 5 then [-1, -1]
-    when 6 then [-1, 0]
-    when 7 then [-1, 1]
+    # straight lines
+    when 0 then [0, 1] # r
+    when 1 then [1, 1] # d
+    when 2 then [1, 0] # l
+    when 3 then [1, -1] # u
+
+    # diags
+    when 4 then [0, -1] # rd
+    when 5 then [-1, -1] # ld
+    when 6 then [-1, 0] # lu
+    when 7 then [-1, 1] # ru
+    
+    # 30 deg diags
+    when 8 then [2, 1] # rrd 
+    when 9 then [1, 2] # rdd
+    when 10 then [-1, 2] # ldd
+    when 11 then [-2, 1] # lld
+    when 12 then [-2, -1] # llu
+    when 13 then [-1, -2] # luu
+    when 14 then [1, -2] # ruu
+    when 15 then [2, -1] # rru
     end
   end
 

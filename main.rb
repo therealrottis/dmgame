@@ -99,10 +99,12 @@ def game
       if val == :want_exit
         return
       end
-    elsif char.class == String
+    elsif !char.nil? # nil means nonblocking returned nothing
       Entity.player.action(char)
     end
-    Curses.timeout = 50
+    Curses.timeout = 1000/TICKRATE
+    # tick rate = 1/timeout
+    # if tick rate is too low (timeout too high) particles at high speed will move inaccurately
 
     GameEngine.render
     char = Curses.getch
@@ -110,4 +112,5 @@ def game
   end
 end
 
+TICKRATE = 20
 main

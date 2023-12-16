@@ -53,6 +53,7 @@ class Path
     
     @startpos = pos1
     @goalpos = pos2
+    @ind = 0
   end
 
   def to_s
@@ -68,9 +69,10 @@ class Path
   end
 
   def next
-    return nil if ind >= @path.length
-    nval = @path[ind]
-    ind += 1
+    return nil if @ind >= @path.length
+    nval = @path[@ind]
+    @ind += 1
+    return nval
   end
   
   RIGHT = 0
