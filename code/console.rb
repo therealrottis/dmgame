@@ -71,6 +71,8 @@ module Console
           end
         end
       when "fireworks"
+        GameEngine.alert = command.to_s
+        Curses.refresh
         if command.length == 1
           run("swarm 10 firework")
         else

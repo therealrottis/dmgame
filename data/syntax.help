@@ -10,7 +10,7 @@ entities.dat
   team=1 # you can only attack outside your team (default=0)
   lootable # can this entity be picked up (default=false)
   invulnerable # is this entity invulnerable (default=false)
-  no_move # is this entity frozen (default=false)
+  no_ai # is this entity frozen (default=false)
   char_from_timer # overrides char, if true gets char from timer (default=false)
   no_drop # does this entity not drop its inventory on death (default=false)
 
@@ -27,6 +27,9 @@ entities.dat
   rand_timer_add=500 # in ms, random move_at timer add on init (default=0) 
   walk_dir=6 # 0..8, dir to automove in on move (0246 rdlu 1357 rd ld lu ru) (8..15 double diags for particle) see Converter.dir_to_yx_arr for comments
   autowalk # if true, automatically moves every 0.8s in walk_dir
+  throw_strength=5 # how far to throw item on attack (default=5)
+  char_from_carried # gets char from @create_on_death (default=false) (fallbacks to own char if fails)
+  particle_explosion_timer=1 # particles spawned by this entity inherit explosion timer (default=false)
 
 items.dat
   shiny # unused
@@ -42,3 +45,4 @@ items.dat
   consume_on_use # if true, on attack @count -= 1 (default=false)
   create_entity_on_use=bomb # if true, on attack create entity (default=false)
   no_melee # if true, attacks get turned into uses (default=false)
+  throwable # if true, tries to throw item on attack (default=false)

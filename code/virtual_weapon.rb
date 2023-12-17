@@ -23,7 +23,7 @@ class VirtualWeapon
     @owner = entity
     @properties = {}
     if entity.property(:volatile)
-      @range = entity.property(:explosion_radius) || 1
+      @range = entity.explosion_radius
       @hits = entity.property(:explosion_hits) || 1
       @damage = entity.property(:explosion_damage) || 5
       @cooldown = 0 # cd not needed: only explodes once

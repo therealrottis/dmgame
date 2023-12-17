@@ -26,10 +26,40 @@ class Item
     return @@items.include?(type.to_sym)
   end
 
+  def create_entity_on_use
+    case property(:create_entity_on_use)
+    when true then return @type
+    when nil then return nil
+    else
+      return property(:create_entity_on_use)
+    end
+  end
+
+  def toss
+    owner = @inventory.owner
+    return unless owner.own?(self)
+    case property(:create_entity_on_use)
+    when nil then true
+    else
+      Entity.new(:thrown_item, *(owner.pos).reverse, :dir => owner.facing, 
+                                                     :walk_distance => owner.throw_strength, 
+                                                     :create_entity_on_death => create_entity_on_use, 
+                                                     :lifetime => 1,
+                                                     :autowalk => true)
+    end
+
+    if property(:consume_on_use)
+      dec_count(1)
+      @inventory.owner.weapon
+    end
+  end
+
   def use
     return unless @inventory.owner.own?(self)
     case property(:create_entity_on_use)
     when nil then true
+    when true
+      Entity.new(@type, *(self.inventory.owner.pos).reverse)
     else
       Entity.new(property(:create_entity_on_use), *(self.inventory.owner.pos).reverse)
     end
@@ -148,7 +178,7 @@ class Item
     else
       throw "bad initialize of item object: type=#{type}"
     end
-    @count = count
+    @count = count.to_i
   end
 
   def self.load_items

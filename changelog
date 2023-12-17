@@ -1,3 +1,5 @@
+- added cluster grenades
+- added some entity properties
 
 v0.1.2
 - made entity.y and x values floats behind the scenes

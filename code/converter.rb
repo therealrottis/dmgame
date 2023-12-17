@@ -182,6 +182,18 @@ module Converter
     end
   end
 
+  def self.dir_to_normalized_yx_arr(dir)
+    step = dir_to_yx_arr(dir)
+    if dir < 8 # 8 squares around
+      if dir % 2 == 1 # only affect if diag 
+        step = step.map { |n| n * 0.7 } # 1 / (sqrt (1**2 + 1**2))
+      end
+    elsif dir < 16 # double diag
+      step = step.map { |n| n * 0.45 } # 1 / (sqrt (1**2 + 2**2))
+    end
+    step
+  end
+
   def self.path_reverse(array)
     array.map { |n| 12 - n }
     # Path.dirs opposites sum is always 12

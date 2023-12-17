@@ -7,7 +7,7 @@ class Entity
   @@player = nil
 
   attr_accessor :inventory, :weapon
-  attr_reader :id, :type, :last_enemy, :last_move_at
+  attr_reader :id, :type, :last_enemy, :last_move_at, :explosion_radius, :facing
 
   def self.entities
     @@entities
@@ -57,26 +57,29 @@ class Entity
     end
     #     v :stop_iter (antioptimisation)
     return if @move_available_at > GameTime.time
-    return if property(:no_move)
-    if property(:particle) || property(:autowalk)
+    
+    if !@step.nil? # automatic actions
       @move_available_at = GameTime.time
 
       movement = @step
 
-    elsif (d_to_player = MathHelpers.euclid_distance(self.pos, @@player.pos)) <= @weapon.range
-      @move_available_at = GameTime.time + cooldown + rand(0..10)/50.to_f
-      movement = Config.get(:key_attack)
+    else # "ai" actions
+      return if property(:no_ai)
+      if (d_to_player = MathHelpers.euclid_distance(self.pos, @@player.pos)) <= (@weapon && @weapon.range || -1)
+        @move_available_at = GameTime.time + cooldown + rand(0..10)/50.to_f
+        movement = Config.get(:key_attack)
 
-    elsif d_to_player <= view_distance && !property(:ranged)# && @@player.los?(self)
-      @move_available_at = GameTime.time + cooldown + rand(0..10)/50.to_f
-      @path = Path.new(pos, @@player.pos) if @path.nil?
-      @path.add_to_end(@@player.pos)
-      movement = @path.next
+      elsif d_to_player <= view_distance && !property(:ranged)# && @@player.los?(self)
+        @move_available_at = GameTime.time + cooldown + rand(0..10)/50.to_f
+        @path = Path.new(pos, @@player.pos) if @path.nil?
+        @path.add_to_end(@@player.pos)
+        movement = @path.next
 
-    else
-      return
-      #@move_available_at = GameTime.time + cooldown + rand(0..10)/50.to_f
-      #movement = Config.get(:key_attack)
+      else
+        return
+        #@move_available_at = GameTime.time + cooldown + rand(0..10)/50.to_f
+        #movement = Config.get(:key_attack)
+      end
     end
     
     action(movement)
@@ -119,7 +122,7 @@ class Entity
     ## buf[2]
     ## if buf adjacent: dir = diag
     ## else: dir = buf[-1]
-    throw "NotImplementedError: entity.aim_torward"
+    throw "NotImplementedError: entity.aim_toward"
   end
 
   def x
@@ -128,6 +131,10 @@ class Entity
 
   def y
     @y.round
+  end
+
+  def throw_strength
+    property(:throw_strength) || 5
   end
 
   def action(char)
@@ -141,32 +148,44 @@ class Entity
       case char
       when Config.get(:key_up)
         @y -= 1
+        @facing = 6
       when Curses::KEY_UP
         @y -= 1
+        @facing = 6
       when Config.get(:key_down)
         @y += 1
+        @facing = 2
       when Curses::KEY_DOWN
         @y += 1
+        @facing = 2
       when Config.get(:key_left)
         @x -= 1
+        @facing = 4
       when Curses::KEY_LEFT
         @x -= 1
+        @facing = 4
       when Config.get(:key_right)
         @x += 1
+        @facing = 0
       when Curses::KEY_RIGHT
         @x += 1
+        @facing = 0
       when Config.get(:key_lu)
         @x -= 1
         @y -= 1
+        #@facing = 5
       when Config.get(:key_ru)
         @x += 1
         @y -= 1
+        #@facing = 7
       when Config.get(:key_ld)
         @x -= 1
         @y += 1
+        #@facing = 3
       when Config.get(:key_rd)
         @x += 1
         @y += 1
+        #@facing = 1
       when Config.get(:key_interact)
         found_entity = nil
         @@entities.each do |entity|
@@ -183,6 +202,7 @@ class Entity
         end
       when Config.get(:key_attack)
         return if @weapon.nil?
+        return @weapon.toss if @weapon.property(:throwable)
         return @weapon.use if @weapon.property(:no_melee)
         return if @next_attack_at > GameTime.time
 
@@ -285,8 +305,20 @@ class Entity
     action(Config.get(:key_attack))
     @weapon = nil
     #Entity.new(:explosion_effects, *self.pos.reverse, :explosion_radius => property(:explosion_radius))
-    (particle_count).times do |dir|
-      Entity.new(:explosion_effects, *self.pos.reverse, :explosion_radius => property(:explosion_radius), :dir => dir)
+    effect = property(:particle) || :explosion_effects
+    props = {:explosion_radius => @explosion_radius}
+    if property(:particle_lifetime)
+      props[:lifetime] = property(:particle_lifetime)
+    end
+    if property(:particle_explosion_timer)
+      props[:explosion_timer] = property(:particle_explosion_timer)
+    end
+    pos = self.pos.reverse
+    dir_step = ((particle_count <= 4) ? 2 : 1)
+    # usually 1, but if we have less than 4 we want the straight directions
+    # if step is 2 the range is 0...8 and we step 0, 2, 4, 6
+    (0...(particle_count * dir_step)).step(dir_step) do |dir|
+      Entity.new(effect, *pos, **props, :dir => dir)
     end
     die
   end
@@ -294,6 +326,9 @@ class Entity
   def die
     unless property(:no_drop)
       Entity.new(:loot, x, y, :inventory => @inventory.random_declutter)
+    end
+    unless @create_on_death.nil?
+      Entity.new(@create_on_death, x, y)
     end
     if @type == :player
       GameEngine.alert = "Game over"
@@ -321,7 +356,8 @@ class Entity
 
   def char
     return timer_to_char if property(:char_from_timer)
-    property(:char) || "."
+    (property(:char_from_carried) ? @@entityprops[@create_on_death][:char] : property(:char) || ".").to_s
+    # if char from carried          get char from carried                    else normal
   end
 
   def self.next_char(char)
@@ -374,6 +410,7 @@ class Entity
     @@id += 1
     @x = x.to_i
     @y = y.to_i
+    @facing = 0
 
     c_iter = 1
     var = 0
@@ -400,37 +437,42 @@ class Entity
 
     @type = type.to_sym
     @next_attack_at = 0
+    explosion_timer = flags[:explosion_timer] || property(:explosion_timer)
     if property(:volatile)
-      @explode_at = GameTime.time + property(:explosion_timer) + possible_random_timer
+      @explode_at = GameTime.time + (explosion_timer) + possible_random_timer
     end
     @move_available_at = 0
     @last_enemy = nil
     
-    if property(:lifetime)
-      @die_at = GameTime.time + property(:lifetime)
-    elsif property(:inherit_lifetime)
-      @die_at = GameTime.time + flags[:lifetime]
+    if flags[:create_entity_on_death]
+      @create_on_death = flags[:create_entity_on_death]
     end
 
-    if property(:particle)
-      @walk_dir = flags[:dir]
-      step_size = (property(:lifetime).to_f * flags[:explosion_radius]) / TICKRATE
-    elsif property(:autowalk)
-      @walk_dir = property(:walk_dir)
-      step_size = 0.8 / TICKRATE
+    if flags[:lifetime]
+      lifetime = flags[:lifetime]
+      @die_at = GameTime.time + lifetime
+    elsif property(:lifetime)
+      lifetime = property(:lifetime)
+      @die_at = GameTime.time + lifetime
+    elsif explosion_timer
+      lifetime = explosion_timer
+      @die_at = @explode_at + 2 * TICKRATE # guarantees that there is always at least a tick between explosion and possibly death
+    else
+      @die_at = nil
     end
+
+    @explosion_radius = flags[:explosion_radius] || property(:explosion_radius) || 1
+
+    walk_dir = flags[:dir] || property(:walk_dir)
     
-    unless @walk_dir.nil?
-      @step = Converter.dir_to_yx_arr(@walk_dir).map { |n| n * step_size }
-      if @walk_dir < 8 # 8 squares around
-        if @walk_dir % 2 == 1 # only affect if diag 
-          @step = @step.map { |n| n * 0.7 } # 1 / (sqrt 2)
-        end
-      elsif @walk_dir < 16 # double diag
-        @step = @step.map { |n| n * 0.45 } # 1 / (sqrt 5)
+    unless walk_dir.nil?
+      if property(:autowalk) || flags[:autowalk]
+        step_size = (flags[:walk_distance] || 0.8) / TICKRATE.to_f
+      else # particle 
+        step_size = (@explosion_radius) / (TICKRATE * lifetime.to_f) 
       end
+      @step = Converter.dir_to_normalized_yx_arr(walk_dir).map { |n| n * step_size }
     end
-
     Entity.add_entity(self)
 
     if type == :player
