@@ -1,7 +1,7 @@
 goblin;inventory=coins,weapon=dagger,speed=1
 soldier;inventory=coins,weapon=sword,speed=2,view_distance=15
 smith;inventory=coins,weapon=hammer,speed=2
-daniel;inventory=danielmoment,weapon=dagger,speed=0.5,boss
+daniel;inventory=danielmoment,weapon=dagger,speed=0.5,boss,view_distance=20,health=50
 player;char=#,render_priority=999,team=1,health=20,throw_strength=5,speed=0.08
 loot;char=@,lootable,invulnerable,no_ai
 randomloot;char=@,lootable,inventory=random,invulnerable,no_ai

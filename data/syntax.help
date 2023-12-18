@@ -40,7 +40,7 @@ items.dat
   drop_chance=100 # 0-100% chance to drop on death (default=0)
   valuable # unused
   damage=10 # damage on attack (default=1)
-  damage=[5;15] # can be defined as random from range
+  damage=[5,15] # can be defined as random from range
   range=3 # manhattan distance for item attack range (default=2)
   hits=4 # how many entities per hit (default=1)
   cooldown=2 # seconds, cooldown after attack (default=1)

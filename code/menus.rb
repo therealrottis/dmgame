@@ -45,6 +45,7 @@ module Menus
           menu = ogmenu + Reader.config_displayrows_from_rows(props[:settings_rows])
           val2 = props[:options] + props[:settings_rows].length
           val1 = val2 - 1
+          GameEngine.rendered_menu_y = -1 # invokes rerender
           Curses.clear
         end
       end

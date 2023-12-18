@@ -46,6 +46,7 @@ class Entity
   end
 
   def move_if_available
+    GameEngine.debug @type
     return if @type == :player
     if property(:volatile)
       return if explode_if_can
@@ -55,6 +56,8 @@ class Entity
         die
       end
     end
+    GameEngine.debug "marker1"
+    
     #     v :stop_iter (antioptimisation)
     return if @move_available_at > GameTime.time
     
@@ -64,17 +67,29 @@ class Entity
       movement = @step
 
     else # "ai" actions
+      GameEngine.debug "marker2"
+    
       return if property(:no_ai)
-      if (d_to_player = MathHelpers.euclid_distance(self.pos, @@player.pos)) <= (@weapon && @weapon.range || -1)
+      if (d_to_player = MathHelpers.euclid_distance(self.pos, @@player.pos)) <= (@weapon ? @weapon.range : -1)
         @move_available_at = GameTime.time + @weapon.cooldown + rand(0..10)/50.to_f
         movement = Config.get(:key_attack)
+        GameEngine.debug "marker3"
+      
 
       elsif d_to_player <= view_distance && !property(:ranged)# && @@player.los?(self)
+        GameEngine.debug "marker5__" # why does it freeze after this???
+      
         @move_available_at = GameTime.time + speed + rand(0..10)/50.to_f
-        @path = Path.new(pos, @@player.pos) if @path.nil?
-        @path.add_to_end(@@player.pos)
-        movement = @path.next
-
+        GameEngine.debug("marker6")
+        
+        @path = Path.new(pos, @@player.pos) if @path.nil? || @path.length > 2 * d_to_player
+        GameEngine.debug("marker61")
+        
+        @path.add_to_end(@@player.pos) if @path.goalpos != @@player.pos && @path.steps_remaining < 2 
+        GameEngine.debug "marker7"
+      
+        movement = Converter.dir_to_yx_arr(@path.next)
+        GameEngine.debug "marker4"
       else
         return
         #@move_available_at = GameTime.time + cooldown + rand(0..10)/50.to_f
@@ -172,22 +187,6 @@ class Entity
       when Curses::KEY_RIGHT
         @x += 1
         @facing = 0
-      when Config.get(:key_lu)
-        @x -= 1
-        @y -= 1
-        #@facing = 5
-      when Config.get(:key_ru)
-        @x += 1
-        @y -= 1
-        #@facing = 7
-      when Config.get(:key_ld)
-        @x -= 1
-        @y += 1
-        #@facing = 3
-      when Config.get(:key_rd)
-        @x += 1
-        @y += 1
-        #@facing = 1
       when Config.get(:key_interact)
         found_entity = nil
         @@entities.each do |entity|
@@ -446,13 +445,14 @@ class Entity
     # 6 1 2 
     # 5 4 3
     while Room.walls_collide(@y, @x)
-      if var == 0
+      case var
+      when 0
         @x += c_iter
-      elsif var == 1
+      when 1
         @y += c_iter
-      elsif var == 2
+      when 2
         @x -= c_iter
-      elsif var == 3
+      when 3
         @y -= c_iter
       end
       if var % 2 == 1
@@ -460,8 +460,9 @@ class Entity
       end
       var += 1
       var %= 4
+      GameEngine.debug "here again #{@x} #{@y} #{var} #{c_iter}"
     end
-
+    
     @type = type.to_sym # define before using property!
     
     @noclip = [flags[:noclip], property(:noclip), false].compact[0]
@@ -474,7 +475,7 @@ class Entity
     end
     @move_available_at = 0
     @last_enemy = nil
-    
+
     if flags[:create_entity_on_death]
       @create_on_death = flags[:create_entity_on_death]
     end

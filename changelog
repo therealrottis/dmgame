@@ -1,3 +1,7 @@
+- added crunch_path, not used yet
+- entity code & config code cleanup
+- entities move now!!
+
 - added noclip property
 - firework particles now pass through walls
 - fixed explosives only damaging player

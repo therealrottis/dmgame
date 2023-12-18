@@ -9,6 +9,8 @@ class Room
   end
 
   def self.walls_collide(y, x)
+    y = y.to_i
+    x = x.to_i
     if @@collision_cache["#{y}, #{x}"].nil?
       @@collision_cache["#{y}, #{x}"] = false
       @@rooms.each do |room|

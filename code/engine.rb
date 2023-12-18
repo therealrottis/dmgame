@@ -1,4 +1,4 @@
-class GameEngine
+module GameEngine
   @@cam_x = 0
   @@cam_y = 0
   @@menu_y = 0
@@ -75,6 +75,12 @@ class GameEngine
     Curses.setpos(*@@console_start)
   end
   
+  def self.debug(text)
+    return unless Config.get(:debug_mode)
+    GameEngine.alert = text
+    Curses.refresh
+  end
+
   def self.show_at_top(text)
     Curses.setpos(0, 0)
     Curses.addstr(" " * Curses.cols)

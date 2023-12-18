@@ -200,4 +200,28 @@ module Converter
     # think of a dice, with 7 as the side sum
     # dirs is a 2d dice with 8 sides
   end
+
+  def self.private_crunch_path(array)
+    last = array[0]
+    newarr = []
+    array[1..-1].each do |elem|
+      if elem + last == 12 # straight across
+        last = 0 # skip next check
+      else
+        newarr << last
+        last = elem
+      end
+    end
+    newarr
+  end
+  private_class_method :private_crunch_path
+
+  def self.crunch_path(array)
+    last_len = 0
+    until last_len = array.length
+      last_len = array.length
+      array = private_crunch_path(array)
+    end
+    return array
+  end
 end
