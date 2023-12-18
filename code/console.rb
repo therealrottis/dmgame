@@ -73,13 +73,7 @@ module Console
       when "fireworks"
         GameEngine.alert = command.to_s
         Curses.refresh
-        if command.length == 1
-          run("swarm 10 firework")
-        else
-          [command[1].to_i, 10].min.times do
-            run("swarm 10 firework")    
-          end
-        end
+        run("swarm 10 firework")
       when "cam"
         GameEngine.alert = "camera position: " + GameEngine.camera_pos.to_s
       when "cammove"
@@ -95,19 +89,27 @@ module Console
         player.take_damage(command[1].to_i.abs)
       when "respawn"
         needs_cheats do
-          if Entity.player.dead?
-            ppos = Entity.player.pos.reverse  
-            Entity.delete_entity(Entity.player)            
+          if player.dead?
+            ppos = player.pos.reverse  
+            Entity.delete_entity(player)            
             Entity.new(:player, *ppos)
           end
         end
       when "path"
         needs_cheats do
-          a = Path.new(Entity.player.pos, command[1..-1].map(&:to_i))
+          a = Path.new(player.pos, command[1..-1].map(&:to_i))
           GameEngine.alert = a.to_s
         end
       when "pos"
-        GameEngine.alert = "player pos: " + Entity.player.pos.to_s
+        GameEngine.alert = "player pos: " + player.pos.to_s
+      when "heal"
+        needs_cheats do
+          if Entity.player.dead?
+            GameEngine.alert = "respawn first"
+          else
+            player.heal(command[1].to_i)
+          end
+        end
       end
     rescue Exception => e
       if Config.get(:debug_mode)

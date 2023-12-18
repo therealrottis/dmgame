@@ -30,6 +30,7 @@ entities.dat
   throw_strength=5 # how far to throw item on attack (default=5)
   char_from_carried # gets char from @create_on_death (default=false) (fallbacks to own char if fails)
   particle_explosion_timer=1 # particles spawned by this entity inherit explosion timer (default=false)
+  boss # is boss? (default=false)
 
 items.dat
   shiny # unused

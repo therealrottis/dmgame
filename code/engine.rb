@@ -176,7 +176,7 @@ class GameEngine
     return [@@cam_y, @@cam_x]
   end
 
-  def self.move_if_necessary(pos)
+  def self.move_cam_if_necessary(pos)
     y, x = tweak_pos_to_frame(pos)
     camy = @@cam_y 
     camx = @@cam_x
@@ -293,6 +293,9 @@ class GameEngine
         cx = x1
         crowsize = 0
         crowsize += cur.length + 1
+        if flags.include?(:align_right)
+          cx = Curses.cols - crowsize
+        end    
         if crowsize >= rowsize
           puts("failure while rendering array")
           return
@@ -378,8 +381,9 @@ class GameEngine
     Curses.clear
   end
 
-  def self.render_menu(menu, selected = nil, first_option = nil)
-    clear_queue
+  def self.render_menu(menu, selected = nil, first_option = nil, **flags)
+    #clear_queue
+    Curses.clear # not enough of a slowdown to optimize
     render_array_in_area(menu[@@menu_y..(@@menu_y + @@menu_height)], @@menu_top_left, @@menu_bottom_right, :force_newline)
     
     unless selected.nil?
@@ -391,12 +395,13 @@ class GameEngine
         if @@menu_y < first_option
           @@menu_y = 0
         end
-        Curses.clear
       elsif selected > @@menu_y + @@menu_height
         @@menu_y = selected - @@menu_height
-        Curses.clear
       end
       render_selected(selected - @@menu_y)
+      if flags[:show_stats]
+        render_array_in_area(menu[selected - 1].stats_array, @@menu_top_left, @@menu_bottom_right, :force_newline, :align_right)
+      end
     end
 
     GameEngine.render_char_at(@@console_start, " ")

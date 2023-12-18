@@ -6,8 +6,8 @@ class Entity
   @@entityprops = nil
   @@player = nil
 
-  attr_accessor :inventory, :weapon
-  attr_reader :id, :type, :last_enemy, :last_move_at, :explosion_radius, :facing
+  attr_accessor :inventory, :weapon, :action_buffer
+  attr_reader :id, :type, :last_enemy, :last_move_at, :explosion_radius, :facing, :move_available_at
 
   def self.entities
     @@entities
@@ -58,7 +58,7 @@ class Entity
     #     v :stop_iter (antioptimisation)
     return if @move_available_at > GameTime.time
     
-    if !@step.nil? # automatic actions
+    if !@step.nil? # automatic actions: particle, throwable
       @move_available_at = GameTime.time
 
       movement = @step
@@ -66,11 +66,11 @@ class Entity
     else # "ai" actions
       return if property(:no_ai)
       if (d_to_player = MathHelpers.euclid_distance(self.pos, @@player.pos)) <= (@weapon && @weapon.range || -1)
-        @move_available_at = GameTime.time + cooldown + rand(0..10)/50.to_f
+        @move_available_at = GameTime.time + @weapon.cooldown + rand(0..10)/50.to_f
         movement = Config.get(:key_attack)
 
       elsif d_to_player <= view_distance && !property(:ranged)# && @@player.los?(self)
-        @move_available_at = GameTime.time + cooldown + rand(0..10)/50.to_f
+        @move_available_at = GameTime.time + speed + rand(0..10)/50.to_f
         @path = Path.new(pos, @@player.pos) if @path.nil?
         @path.add_to_end(@@player.pos)
         movement = @path.next
@@ -110,8 +110,8 @@ class Entity
     end
   end
 
-  def cooldown
-    property(:cooldown) or 1
+  def speed
+    property(:speed) || 1
   end
 
   def team
@@ -240,16 +240,27 @@ class Entity
     end
     
     if (ogx != x || ogy != y)
-      if @type == :player
-        GameEngine.move_if_necessary(pos)
-      end
       if property(:has_collision)
         Room.cache_remove(ogy, ogx)
       end
       if Room.walls_collide(y, x)
         @y = ogy
         @x = ogx
+        return
       end
+
+      if @type == :player
+        GameEngine.move_cam_if_necessary(pos)
+        
+        if @move_available_at > GameTime.time # cant move yet
+          @action_buffer = char
+          @y = ogy
+          @x = ogx
+        elsif y != ogy || x != ogx
+          #@action_buffer = nil # cleared in main loop
+          @move_available_at = GameTime.time + speed
+        end  
+      end      
     end
   end
 
@@ -329,6 +340,13 @@ class Entity
     end
     unless @create_on_death.nil?
       Entity.new(@create_on_death, x, y)
+    end
+    if property(:boss)
+      Curses.flash
+      10.times do
+        Entity.new(:firework, x, y)
+      end
+      Console.run("fireworks")
     end
     if @type == :player
       GameEngine.alert = "Game over"
@@ -501,6 +519,13 @@ class Entity
 
   def inventory_text
     return @inventory.show_items_array
+  end
+
+  def heal(hp)
+    @health += hp.abs
+    if @health > @max_health
+      @health = @max_health
+    end
   end
 
   def debug_display

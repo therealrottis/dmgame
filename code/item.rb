@@ -125,6 +125,14 @@ class Item
     @@itemprops[@type][prop]
   end
 
+  def stats_array
+    ["damage: #{damagetxt}", 
+      "range: #{range}", 
+      "hits: #{hits}", 
+      "cooldown: #{cooldown}s", 
+      "type: #{property(:throwable) ? "throwable" : (property(:no_melee) ? "ranged" : "melee")}"]
+  end
+
   def range
     property(:range) or 2
   end

@@ -101,8 +101,13 @@ def game
       end
     elsif !char.nil? # nil means nonblocking returned nothing
       Entity.player.action(char)
+    else # returned nothing, let's try moving player from buffer
+      if !Entity.player.action_buffer.nil? && Entity.player.move_available_at >= GameTime.time
+        Entity.player.action(Entity.player.action_buffer)
+        Entity.player.action_buffer = nil
+      end
     end
-    Curses.timeout = 1000/TICKRATE
+    Curses.timeout = TIMEOUT
     # tick rate = 1/timeout
     # if tick rate is too low (timeout too high) particles at high speed will move inaccurately
 
@@ -113,4 +118,5 @@ def game
 end
 
 TICKRATE = 20
+TIMEOUT = 1000 / TICKRATE
 main

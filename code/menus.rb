@@ -4,6 +4,7 @@ module Menus
     GameEngine.menu_y = 0
     menu, props = Reader.read(menu_name)
     ogmenu = menu
+    flags = {}
     if menu_name == "menu"
       menu << ""
       menu << "version " + Config.version
@@ -18,6 +19,7 @@ module Menus
     elsif menu_name == "weapon_select"
       props[:weapons] = Entity.player.inventory.items
       menu += props[:weapons]
+      flags[:show_stats] = true
       val2 = Entity.player.inventory.length
       return if val2 <= 0
       val1 = val2 - 1
@@ -27,7 +29,7 @@ module Menus
     end
     input = ""
     while input != 3
-      GameEngine.render_menu(menu, selected * props[:optiongap] + props[:optionstart], props[:optionstart])
+      GameEngine.render_menu(menu, selected * props[:optiongap] + props[:optionstart], props[:optionstart], **flags)
       input = Curses.getch
 
       if input == Curses::KEY_DOWN || input == Config.get(:key_down)
@@ -50,7 +52,6 @@ module Menus
         selected = ((selected + val2) % val2)
       end
     end
-    exit # never used?
   end
 
   def self.visual_menu(menu_name)
@@ -130,8 +131,10 @@ module Menus
   end
 
   def self.weapon_menu
-    menu("weapon_select") do |props, selected|
-      return props[:weapons][selected]
+    GameTime.while_paused do 
+      menu("weapon_select") do |props, selected|
+        return props[:weapons][selected]
+      end
     end
   end
 end
