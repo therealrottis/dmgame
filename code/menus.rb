@@ -2,10 +2,11 @@ module Menus
   def self.menu(menu_name, selected = 0)
     Curses.clear
     GameEngine.menu_y = 0
+    GameEngine.rendered_menu_y = -1 # optimisation
     menu, props = Reader.read(menu_name)
     ogmenu = menu
     flags = {}
-    if menu_name == "menu"
+    if menu_name == "main_menu"
       menu << ""
       menu << "version " + Config.version
       val2 = props[:options]
@@ -57,6 +58,7 @@ module Menus
   def self.visual_menu(menu_name)
     Curses.clear
     GameEngine.menu_y = 0
+    GameEngine.rendered_menu_y = -1 # optimisation
     menu, props = Reader.read(menu_name)
     if props[:need_subst]
       menu = Converter.substitute(menu, props)

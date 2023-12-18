@@ -1,3 +1,10 @@
+- added noclip property
+- firework particles now pass through walls
+- fixed explosives only damaging player
+- removed input echo
+- improved pause code
+- time is now stopped on screen flash
+
 v0.1.3
 - gametime can now handle stacked unpauses and pauses
 - added boss death effect

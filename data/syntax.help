@@ -1,9 +1,9 @@
 (if some property is missing from here lmk)
 
 entities.dat
-  inventory=coins (inventory=random) # on init, add items to inv from here (default=nil)
+  inventory=coins # on init, add items to inv from here (random=resources) (default=nil)
   weapon=dagger # on init, weapon = this (default = nil)
-  speed=1 # can move every n seconds (default=) /// UNUSED?
+  speed=1 # can move every n seconds (default=1)
   view_distance=15 # how far away can entity see player (default=10)
   char=# # char to be used when rendering (default=".")
   render_priority=999 # on render, overrides lower priority entities (default=weapon ? 100 : 0)
@@ -15,15 +15,15 @@ entities.dat
   no_drop # does this entity not drop its inventory on death (default=false)
 
   volatile # is this entity an explosive (default=false)
-  # next 4 are specific to volatiles
-  explosion_damage=50 # max damage dealt by explosion (default=5)
-  explosion_radius=5 # radius of explosion (default=1)
+  # following are specific to volatiles
+  explosion_damage=50 # max damage dealt by explosion, scales linearly to edge (default=5)
+  explosion_radius=5 # radius of explosion (euclid distance) (default=1)
   explosion_timer=5 # time until explosion (no default, crash if undefined)
   explosion_hits=1000 # how many entities can the explosion hit (default=1)
-
+  particle_count=16 # on explosion, how many particles to create (4, 8, 16) (default=8)
+  
   lifetime=1.5 # time until death after create (default=false)
   particle # is particle? (default=false)
-  particle_count=16 # on explosion, how many particles to create (4, 8, 16) (default=8)
   rand_timer_add=500 # in ms, random move_at timer add on init (default=0) 
   walk_dir=6 # 0..8, dir to automove in on move (0246 rdlu 1357 rd ld lu ru) (8..15 double diags for particle) see Converter.dir_to_yx_arr for comments
   autowalk # if true, automatically moves every 0.8s in walk_dir
@@ -31,6 +31,7 @@ entities.dat
   char_from_carried # gets char from @create_on_death (default=false) (fallbacks to own char if fails)
   particle_explosion_timer=1 # particles spawned by this entity inherit explosion timer (default=false)
   boss # is boss? (default=false)
+  noclip # collides with walls (default=false)
 
 items.dat
   shiny # unused
@@ -44,6 +45,6 @@ items.dat
   hits=4 # how many entities per hit (default=1)
   cooldown=2 # seconds, cooldown after attack (default=1)
   consume_on_use # if true, on attack @count -= 1 (default=false)
-  create_entity_on_use=bomb # if true, on attack create entity (default=false)
+  create_entity_on_use=bomb # if true, on attack create entity (true=self) (default=false)
   no_melee # if true, attacks get turned into uses (default=false)
   throwable # if true, tries to throw item on attack (default=false)

@@ -110,6 +110,12 @@ module Console
             player.heal(command[1].to_i)
           end
         end
+      when "items"
+        needs_cheats do
+          Item.items.each do |item|
+            player.inventory << Item.new(item)
+          end
+        end
       end
     rescue Exception => e
       if Config.get(:debug_mode)
@@ -120,9 +126,10 @@ module Console
   end
 
   def self.get_command
-    GameTime.pause_time
+    string = "" # scope
+    GameTime.while_paused do
     string = Input.get_input
-    GameTime.unpause_time
+    end
     GameEngine.alert = ""
     return if string == :abort
     run(string.delete("/").chomp.downcase)

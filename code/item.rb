@@ -31,7 +31,7 @@ class Item
     when true then return @type
     when nil then return nil
     else
-      return property(:create_entity_on_use)
+      return property(:create_entity_on_use).to_sym
     end
   end
 
@@ -126,11 +126,25 @@ class Item
   end
 
   def stats_array
-    ["damage: #{damagetxt}", 
+    return @cached_stats_array unless @cached_stats_array.nil?
+
+    a = ["type: #{property(:throwable) ? "throwable" : (property(:no_melee) ? "ranged" : "melee")}"]
+    if !property(:no_melee)
+      a += ["damage: #{damagetxt}", 
       "range: #{range}", 
-      "hits: #{hits}", 
-      "cooldown: #{cooldown}s", 
-      "type: #{property(:throwable) ? "throwable" : (property(:no_melee) ? "ranged" : "melee")}"]
+      "hits: #{hits}"] 
+    end
+    if create_entity_on_use
+      entity = create_entity_on_use
+      if Entity.property(entity, :volatile)
+        a += ["explosion damage: #{Entity.property(entity, :explosion_damage) || 0}",
+              "explosion radius: #{Entity.property(entity, :explosion_radius)}",
+              "fuse: #{Entity.property(entity, :explosion_timer) + (property(:throwable) ? 1 : 0)}s"] # add throw time
+      end
+    end
+    a += ["cooldown: #{cooldown}s"]
+    @cached_stats_array = a
+    return a
   end
 
   def range

@@ -7,7 +7,7 @@ loot;char=@,lootable,invulnerable,no_ai
 randomloot;char=@,lootable,inventory=random,invulnerable,no_ai
 bomb;char_from_timer,invulnerable,no_ai,no_drop,volatile,explosion_damage=50,explosion_radius=5,explosion_timer=5,explosion_hits=1000,render_priority=100
 explosion_effects;char=*,invulnerable,no_drop,lifetime=1,particle,render_priority=-100
-firework;char=t,invulnerable,walk_dir=6,autowalk,no_drop,volatile,explosion_hits=0,explosion_radius=25,explosion_timer=2,render_priority=100,rand_timer_add=500,particle_count=16
+firework;char=t,invulnerable,walk_dir=6,autowalk,no_drop,volatile,explosion_hits=0,explosion_radius=25,explosion_timer=2,render_priority=100,rand_timer_add=500,particle_count=16,particle_noclip
 pftester;char=o,test_pathfinder
 grenade;char=o,invulnerable,no_ai,no_drop,volatile,explosion_radius=3,explosion_timer=0,explosion_damage=20,render_priority=100,particle_lifetime=0.5
 clustergrenade;char=8,invulnerable,no_ai,no_drop,volatile,explosion_radius=4,explosion_timer=0,explosion_hits=0,render_priority=100,particle_count=4,particle=grenade,particle_explosion_timer=1

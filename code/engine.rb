@@ -6,6 +6,8 @@ class GameEngine
   @@board_margin_top = 1
   @@board_margin_bottom = 5
   @@top_text = ""
+  @@rendered_menu_y = -1
+  @@last_selected = []
 
   def self.calculate_corners
     @@board_left_wall =           1
@@ -38,6 +40,10 @@ class GameEngine
     @@horiz_margin =              @@board_width / 15 + 3
     @@verti_margin =              @@board_height / 10 + 2
     @@console_start =             [Curses.lines - 2, 1]
+  end
+
+  def self.rendered_menu_y=(val)
+    @@rendered_menu_y = val
   end
 
   def self.render_corners
@@ -231,7 +237,7 @@ class GameEngine
     priorities = Hash.new
     Entity.entities.each do |entity|
       pos = tweak_pos_to_frame(entity.pos)
-      if in_frame(*pos)
+      if in_frame(*pos) && !Room.walls_collide(*entity.pos)
         if already_rendered.include?(pos)
           if entity.render_priority > priorities[pos]
             render_char_at(pos, entity.char)
@@ -252,11 +258,18 @@ class GameEngine
     render_char_at(@@annoying_console_wall, "*")
   end
 
+  def self.flash
+    GameTime.while_paused do
+      Curses.flash
+    end
+  end
+
   def self.init
     Curses.init_screen
     Curses.start_color
     Curses.stdscr.keypad(true)
     Curses.cbreak
+    Curses.noecho
     GameEngine.calculate_corners
     Curses.curs_set(0)
   end
@@ -382,9 +395,12 @@ class GameEngine
   end
 
   def self.render_menu(menu, selected = nil, first_option = nil, **flags)
-    #clear_queue
-    Curses.clear # not enough of a slowdown to optimize
-    render_array_in_area(menu[@@menu_y..(@@menu_y + @@menu_height)], @@menu_top_left, @@menu_bottom_right, :force_newline)
+    clear_queue
+    #Curses.clear # TODO: add right menu elements to clear_queue for optimization
+    if @@menu_y != @@rendered_menu_y    
+      render_array_in_area(menu[@@menu_y..(@@menu_y + @@menu_height)], @@menu_top_left, @@menu_bottom_right, :force_newline)
+      @@rendered_menu_y = @@menu_y
+    end
     
     unless selected.nil?
       if selected <= @@menu_y
@@ -400,7 +416,9 @@ class GameEngine
       end
       render_selected(selected - @@menu_y)
       if flags[:show_stats]
+        render_array_in_area(@@last_selected.map { |str| " " * str.length }, @@menu_top_left, @@menu_bottom_right, :force_newline, :align_right)
         render_array_in_area(menu[selected - 1].stats_array, @@menu_top_left, @@menu_bottom_right, :force_newline, :align_right)
+        @@last_selected = menu[selected - 1].stats_array
       end
     end
 

@@ -7,7 +7,7 @@ class Entity
   @@player = nil
 
   attr_accessor :inventory, :weapon, :action_buffer
-  attr_reader :id, :type, :last_enemy, :last_move_at, :explosion_radius, :facing, :move_available_at
+  attr_reader :id, :type, :last_enemy, :last_move_at, :explosion_radius, :facing, :move_available_at, :noclip
 
   def self.entities
     @@entities
@@ -141,7 +141,9 @@ class Entity
     return if @reject_move
     ogx = x
     ogy = y
-    @@old_entities << [y, x]
+    if !Room.walls_collide(y, x) # don't clear wall tiles
+      @@old_entities << [y, x]
+    end
     if char.class == Array # specific movement: [1, 0] or [0.7, 0.7]
       @y, @x = MathHelpers.arrsum(char, [@y, @x])
     else
@@ -218,9 +220,9 @@ class Entity
 
         @@entities.each do |entity|
           if (d = distance_func.call(entity.pos, pos)) < wpnrange && 
-            entity != self && 
-            !entity.property(:invulnerable) &&
-            entity.team != self.team
+              entity != self && 
+              !entity.property(:invulnerable) &&
+              (entity.team != self.team || property(:volatile)) # explosives damage everyone
             attack_entities << [entity, d]
             #break if attack_entities.length >= @weapon.hits
             # grayed out: want to attack closest entity, not entity with lowest id
@@ -239,7 +241,7 @@ class Entity
       end
     end
     
-    if (ogx != x || ogy != y)
+    if (ogx != x || ogy != y) && !@noclip
       if property(:has_collision)
         Room.cache_remove(ogy, ogx)
       end
@@ -292,7 +294,7 @@ class Entity
     return if damage <= 0
     if !property(:invulnerable)
       if @type == :player
-        Curses.flash
+        GameEngine.flash
       end
       @health -= damage
       if @health <= 0
@@ -324,6 +326,9 @@ class Entity
     if property(:particle_explosion_timer)
       props[:explosion_timer] = property(:particle_explosion_timer)
     end
+    if property(:particle_noclip)
+      props[:noclip] = true
+    end
     pos = self.pos.reverse
     dir_step = ((particle_count <= 4) ? 2 : 1)
     # usually 1, but if we have less than 4 we want the straight directions
@@ -342,7 +347,7 @@ class Entity
       Entity.new(@create_on_death, x, y)
     end
     if property(:boss)
-      Curses.flash
+      GameEngine.flash
       10.times do
         Entity.new(:firework, x, y)
       end
@@ -350,10 +355,10 @@ class Entity
     end
     if @type == :player
       GameEngine.alert = "Game over"
-      #2.times { sleep(0.2); Curses.flash }
+      #2.times { sleep(0.2); GameEngine.flash }
       @reject_move = true # doesnt need to be for all entities: others aren't looped through anymore (ln +2)
     end
-    @@old_entities << self.pos
+    @@old_entities << pos unless Room.walls_collide(*pos)
     @@entities.delete(self)
   end
 
@@ -410,12 +415,16 @@ class Entity
     @inventory = inventory
     inventory.owner = self
   end
+  
+  def self.property(type, prop)
+    if @@entityprops[type].nil?
+      throw "UndefinedTypeException: #{type} is not entity"
+    end
+    @@entityprops[type][prop]
+  end
 
   def property(prop)
-    if @@entityprops[@type].nil?
-      throw "UndefinedTypeException: #{@type} is not entity"
-    end
-    @@entityprops[@type][prop]
+    Entity.property(@type, prop)
   end
 
   def possible_random_timer
@@ -436,7 +445,7 @@ class Entity
     # 7 8 9 10...
     # 6 1 2 
     # 5 4 3
-    while Room.walls_collide(y, x)
+    while Room.walls_collide(@y, @x)
       if var == 0
         @x += c_iter
       elsif var == 1
@@ -453,7 +462,11 @@ class Entity
       var %= 4
     end
 
-    @type = type.to_sym
+    @type = type.to_sym # define before using property!
+    
+    @noclip = [flags[:noclip], property(:noclip), false].compact[0]
+    # take first non nil
+
     @next_attack_at = 0
     explosion_timer = flags[:explosion_timer] || property(:explosion_timer)
     if property(:volatile)
