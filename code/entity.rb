@@ -46,7 +46,6 @@ class Entity
   end
 
   def move_if_available
-    GameEngine.debug @type
     return if @type == :player
     if property(:volatile)
       return if explode_if_can
@@ -56,43 +55,32 @@ class Entity
         die
       end
     end
-    GameEngine.debug "marker1"
-    
+
     #     v :stop_iter (antioptimisation)
-    return if @move_available_at > GameTime.time
+    return if @move_available_at > GameTime.tick_time
     
     if !@step.nil? # automatic actions: particle, throwable
-      @move_available_at = GameTime.time
+      @move_available_at = GameTime.tick_time
+      movement = @step.map { |n| n * GameTime.last_tick_relative_length }
 
-      movement = @step
-
-    else # "ai" actions
-      GameEngine.debug "marker2"
-    
+    else # "ai" actions   
       return if property(:no_ai)
-      if (d_to_player = MathHelpers.euclid_distance(self.pos, @@player.pos)) <= (@weapon ? @weapon.range : -1)
-        @move_available_at = GameTime.time + @weapon.cooldown + rand(0..10)/50.to_f
+      if (d_to_player = MathHelpers.manhattan_distance(self.pos, @@player.pos)) < (@weapon ? @weapon.range : -1)
+        @move_available_at = GameTime.tick_time + @weapon.cooldown + rand(0..10)/50.to_f
         movement = Config.get(:key_attack)
         GameEngine.debug "marker3"
       
 
       elsif d_to_player <= view_distance && !property(:ranged)# && @@player.los?(self)
-        GameEngine.debug "marker5__" # why does it freeze after this???
-      
-        @move_available_at = GameTime.time + speed + rand(0..10)/50.to_f
-        GameEngine.debug("marker6")
+        @move_available_at = GameTime.tick_time + speed + rand(0..10)/50.to_f
         
-        @path = Path.new(pos, @@player.pos) if @path.nil? || @path.length > 2 * d_to_player
-        GameEngine.debug("marker61")
-        
-        @path.add_to_end(@@player.pos) if @path.goalpos != @@player.pos && @path.steps_remaining < 2 
-        GameEngine.debug "marker7"
-      
+        # until performance concerns come up it's staying like this
+        @path = Path.new(pos, @@player.pos)# if @path.nil? || @path.length > 2 * d_to_player || @path.length <= 2
+        #@path.add_to_end(@@player.pos) if @path.goalpos != @@player.pos && @path.steps_remaining < 2 
         movement = Converter.dir_to_yx_arr(@path.next)
-        GameEngine.debug "marker4"
       else
         return
-        #@move_available_at = GameTime.time + cooldown + rand(0..10)/50.to_f
+        #@move_available_at = GameTime.tick_time + cooldown + rand(0..10)/50.to_f
         #movement = Config.get(:key_attack)
       end
     end
@@ -102,7 +90,7 @@ class Entity
 
   def explode_if_can
     return unless property(:volatile)
-    if @explode_at <= GameTime.time
+    if @explode_at <= GameTime.tick_time
       explode
       die
       return true
@@ -112,7 +100,7 @@ class Entity
 
   def lifetime
     return 999 if @die_at.nil?
-    return @die_at - GameTime.time
+    return @die_at - GameTime.tick_time
   end
 
   def view_distance
@@ -121,7 +109,7 @@ class Entity
 
   def self.movements
     @@entities.each do |entity|
-      return if entity.move_if_available == :stop_iter
+      Benchmark.time_spent(entity.type) { entity.move_if_available }
     end
   end
 
@@ -205,11 +193,11 @@ class Entity
         return if @weapon.nil?
         return @weapon.toss if @weapon.property(:throwable)
         return @weapon.use if @weapon.property(:no_melee)
-        return if @next_attack_at > GameTime.time
+        return if @next_attack_at > GameTime.tick_time
 
         wpnrange = @weapon.range
         
-        @next_attack_at = GameTime.time + @weapon.cooldown
+        @next_attack_at = GameTime.tick_time + @weapon.cooldown
         attack_entities = []
         if property(:volatile) # use chebyshev if explosive, we don't want to miss anything
           distance_func = lambda { |a, b| MathHelpers.chebyshev_distance(a, b) }
@@ -253,13 +241,13 @@ class Entity
       if @type == :player
         GameEngine.move_cam_if_necessary(pos)
         
-        if @move_available_at > GameTime.time # cant move yet
+        if @move_available_at > GameTime.tick_time # cant move yet
           @action_buffer = char
           @y = ogy
           @x = ogx
         elsif y != ogy || x != ogx
           #@action_buffer = nil # cleared in main loop
-          @move_available_at = GameTime.time + speed
+          @move_available_at = GameTime.tick_time + speed
         end  
       end      
     end
@@ -373,7 +361,7 @@ class Entity
   end
 
   def timer_to_char
-    (@explode_at - GameTime.time + 1).to_i.to_s[-1]
+    (@explode_at - GameTime.tick_time + 1).to_i.to_s[-1]
   end
 
   def char
@@ -391,7 +379,7 @@ class Entity
   end
 
   def time_until_next_attack(wid)
-    num = @next_attack_at - GameTime.time
+    num = @next_attack_at - GameTime.tick_time
     bar_size = wid - 1
     if num <= 0
       return ""
@@ -471,7 +459,7 @@ class Entity
     @next_attack_at = 0
     explosion_timer = flags[:explosion_timer] || property(:explosion_timer)
     if property(:volatile)
-      @explode_at = GameTime.time + (explosion_timer) + possible_random_timer
+      @explode_at = GameTime.tick_time + (explosion_timer) + possible_random_timer
     end
     @move_available_at = 0
     @last_enemy = nil
@@ -482,10 +470,10 @@ class Entity
 
     if flags[:lifetime]
       lifetime = flags[:lifetime]
-      @die_at = GameTime.time + lifetime
+      @die_at = GameTime.tick_time + lifetime
     elsif property(:lifetime)
       lifetime = property(:lifetime)
-      @die_at = GameTime.time + lifetime
+      @die_at = GameTime.tick_time + lifetime
     elsif explosion_timer
       lifetime = explosion_timer
       @die_at = @explode_at + 2 * TICKRATE # guarantees that there is always at least a tick between explosion and possibly death

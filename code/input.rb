@@ -1,10 +1,9 @@
 class Input
-
-  def self.get_input(string = "")
-    GameEngine.render_console_right_wall
+  def self.get_input(render_wall = true)
+    GameEngine.render_console_right_wall if render_wall
     GameEngine.set_cursor_bottom_left
     char = ""
-
+    string = ""
     while char != 10 # 10 = enter
       if char == 8 # 8 = backspace
         if string.length > 0
@@ -24,7 +23,7 @@ class Input
       Curses.refresh
       char = Curses.getch
     end
-    GameEngine.render_console_right_wall # need to fix the wall that has disappeared: \n gets echoed....
+    GameEngine.render_console_right_wall if render_wall # need to fix the wall that has disappeared: \n gets echoed....
     return string.chomp
   end
 end

@@ -49,7 +49,6 @@ module Menus
           Curses.clear
         end
       end
-
       if selected < 0 || selected > val1
         selected = ((selected + val2) % val2)
       end
@@ -66,7 +65,7 @@ module Menus
     end
     input = ""
     while input != 3
-      GameEngine.render_menu(menu)
+      GameEngine.render_menu(menu, nil, nil)
       input = Curses.getch
 
       if input == Curses::KEY_DOWN || input == Config.get(:key_down)
@@ -125,7 +124,7 @@ module Menus
         end
       else
         GameEngine.show_at_top("What do you want to change this to? ")
-        string = Input.get_input
+        string = Input.get_input(false)
         GameEngine.show_at_top(" " * Curses.cols)
         props[:settings_rows][selected - props[:options]][1] = string
         props[:rerender] = true

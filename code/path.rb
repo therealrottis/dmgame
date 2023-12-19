@@ -32,13 +32,23 @@ class Path
     return []
   end
 
-  def self.cached_path(pos1, pos2) # not really useful in current state, probably should improve
+  def self.cached_path(pos1, pos2)
+    value = cached_path_unwrapped(pos1, pos2)
+    if value.nil?
+      Benchmark.cache_miss(:path)
+    else
+      Benchmark.cache_hit(:path)
+    end
+    return value
+  end
+
+  def self.cached_path_unwrapped(pos1, pos2)
     cached = @@paths["#{pos1}=>#{pos2}"]
     return cached unless cached.nil?
 
     cached = @@paths["#{pos2}=>#{pos1}"]
-    return cached unless cached.nil?
-    nil
+    return Converter.path_reverse(cached) unless cached.nil?
+    return nil
   end
 
   def self.add_to_cache(pos1, pos2, path)
@@ -48,18 +58,15 @@ class Path
 
   def initialize(pos1, pos2)
     cached = Path.cached_path(pos1, pos2)
-    GameEngine.debug("here1")
-
+    
     if cached.nil?
-      GameEngine.debug("before a*")
-      @path = Path.a_star(pos1, pos2)
-      GameEngine.debug("here2")
+      Benchmark.time_spent(:pathfinding) do
+        @path = Path.a_star(pos1, pos2)
+      end
       Path.add_to_cache(pos1, pos2, @path)
-      GameEngine.debug("here3")
     else
       @path = cached.dup
     end
-    GameEngine.debug("here2")
     
     @startpos = pos1
     @goalpos = pos2
@@ -71,7 +78,7 @@ class Path
   end
 
   def steps_remaining
-    length - @ind - 1 # ind offset
+    length
   end
 
   def to_s
@@ -83,18 +90,19 @@ class Path
     return if @goalpos == new_goalpos
     @path += Path.a_star(@goalpos, new_goalpos)
     @goalpos = new_goalpos
+    simplify()
     Path.add_to_cache(@startpos, @goalpos, @path)
   end
 
   def next
-    return nil if @ind >= @path.length
-    nval = @path[@ind]
-    @ind += 1
-    return nval
+    @startpos = MathHelpers.arrsum(@startpos, Converter.dir_to_yx_arr(@path[0]))
+    val = @path[0]
+    @path.unshift
+    return val
   end
 
   def simplify
-    @path[ind..-1] = Converter.crunch_path(@path[ind..-1])
+    @path = Converter.crunch_path(@path)
   end
   
   RIGHT = 0

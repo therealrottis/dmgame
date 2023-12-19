@@ -25,7 +25,7 @@ module GameEngine
     @@inv_top_left =              [@@board_bottom_wall + 2, Curses.cols / 3 * 2 + 1]
     @@inv_bot_right =             [Curses.lines - 2, Curses.cols - 2]
     @@menu_top_left =             [0, 2]
-    @@menu_bottom_right =         [Curses.lines - 2, Curses.cols - 2]
+    @@menu_bottom_right =         [Curses.lines - 4, Curses.cols - 2]
     @@menu_height =               @@menu_bottom_right[0] - @@menu_top_left[0]
     @@weapon_display =            @@board_bottom_left.dup
     @@weapon_display[0] +=        2 
@@ -400,13 +400,8 @@ module GameEngine
     Curses.clear
   end
 
-  def self.render_menu(menu, selected = nil, first_option = nil, **flags)
+  def self.render_menu(menu, selected, first_option, **flags)
     clear_queue
-    #Curses.clear # TODO: add right menu elements to clear_queue for optimization
-    if @@menu_y != @@rendered_menu_y    
-      render_array_in_area(menu[@@menu_y..(@@menu_y + @@menu_height)], @@menu_top_left, @@menu_bottom_right, :force_newline)
-      @@rendered_menu_y = @@menu_y
-    end
     
     unless selected.nil?
       if selected <= @@menu_y
@@ -420,12 +415,19 @@ module GameEngine
       elsif selected > @@menu_y + @@menu_height
         @@menu_y = selected - @@menu_height
       end
-      render_selected(selected - @@menu_y)
-      if flags[:show_stats]
-        render_array_in_area(@@last_selected.map { |str| " " * str.length }, @@menu_top_left, @@menu_bottom_right, :force_newline, :align_right)
-        render_array_in_area(menu[selected - 1].stats_array, @@menu_top_left, @@menu_bottom_right, :force_newline, :align_right)
-        @@last_selected = menu[selected - 1].stats_array
-      end
+    end
+
+    if @@menu_y != @@rendered_menu_y
+      Curses.clear
+      render_array_in_area(menu[@@menu_y..(@@menu_y + @@menu_height)], @@menu_top_left, @@menu_bottom_right, :force_newline)
+      @@rendered_menu_y = @@menu_y
+    end
+    
+    render_selected(selected - @@menu_y) unless selected.nil?
+    if flags[:show_stats]
+      render_array_in_area(@@last_selected.map { |str| " " * str.length }, @@menu_top_left, @@menu_bottom_right, :force_newline, :align_right)
+      render_array_in_area(menu[selected - 1].stats_array, @@menu_top_left, @@menu_bottom_right, :force_newline, :align_right)
+      @@last_selected = menu[selected - 1].stats_array
     end
 
     GameEngine.render_char_at(@@console_start, " ")

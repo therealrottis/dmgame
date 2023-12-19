@@ -116,6 +116,11 @@ module Console
             player.inventory << Item.new(item)
           end
         end
+      when "lagtest"
+        needs_cheats do
+          50.times { run("fireworks"); sleep(0.01) }
+          10.times { run("swarm"); sleep(0.01) }
+        end
       end
     rescue Exception => e
       if Config.get(:debug_mode)

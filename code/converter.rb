@@ -195,18 +195,15 @@ module Converter
   end
 
   def self.path_reverse(array)
-    array.map { |n| 12 - n }
-    # Path.dirs opposites sum is always 12
-    # think of a dice, with 7 as the side sum
-    # dirs is a 2d dice with 8 sides
+    array.map { |n| (n + 4) % 8 }
   end
 
   def self.private_crunch_path(array)
     last = array[0]
     newarr = []
     array[1..-1].each do |elem|
-      if elem + last == 12 # straight across
-        last = 0 # skip next check
+      if (elem - last).abs == 4 # straight across
+        last = 100 # skip next check
       else
         newarr << last
         last = elem
@@ -223,5 +220,26 @@ module Converter
       array = private_crunch_path(array)
     end
     return array
+  end
+
+  def self.to_time(value)
+    value = 0 if value.nil?
+    seconds = value
+    milliseconds = value * 1000
+    microseconds = milliseconds * 1000
+    minutes = value / 60.0
+    hours = minutes / 60.0
+    
+    if hours >= 2
+      return "#{hours.floor}h, #{minutes.floor}min"
+    elsif minutes >= 5
+      return "#{minutes.floor}min, #{seconds.floor}s"
+    elsif seconds >= 5
+      return "#{seconds.floor}s, #{milliseconds.floor}ms"
+    elsif milliseconds >= 1
+      return "#{milliseconds.floor}ms"
+    elsif microseconds >= 1
+      return "#{microseconds.floor}us"
+    end
   end
 end

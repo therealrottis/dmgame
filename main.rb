@@ -3,7 +3,7 @@
   "reader", "converter", "input", 
   "math_helpers", "menus", "wall", 
   "room", "virtual_weapon", "time",
-  "path"].each do |codefile|
+  "path", "benchmark"].each do |codefile|
   require_relative("code/" + codefile)
 end
 
@@ -22,7 +22,7 @@ end
 puts("Dependencies loaded.")
 
 def get_time
-  GameTime.time
+  GameTime.true_time
 end
 
 def do_something(text)
@@ -76,7 +76,13 @@ def main
       end
     end
   ensure
-    Curses.close_screen 
+    Curses.close_screen
+    if Config.get(:debug_mode)
+      puts("debug information:")
+      Benchmark.print_times_spent
+      Benchmark.display_caches
+      Benchmark.print_tick_times
+    end
   end
 end
 
@@ -92,9 +98,13 @@ def game
   char = ""
   string = ""
   while char != 3 # 3 == ctrl+c
+    if char.class == String
+      char = char.downcase
+    end
     if char == "/" || char == Config.get(:key_chat)
       Curses.timeout = -1
       GameEngine.alert = "PAUSED"
+      val = ""
       val = Console.get_command # pauses time
       if val == :want_exit
         return
@@ -102,20 +112,32 @@ def game
     elsif !char.nil? # nil means nonblocking returned nothing
       Entity.player.action(char)
     else # returned nothing, let's try moving player from buffer
-      if !Entity.player.action_buffer.nil? && Entity.player.move_available_at >= GameTime.time
+      if !Entity.player.action_buffer.nil? && Entity.player.move_available_at >= GameTime.tick_time
         Entity.player.action(Entity.player.action_buffer)
         Entity.player.action_buffer = nil
       end
     end
-    Curses.timeout = TIMEOUT
-    # tick rate = 1/timeout
+    
+    if GameTime.tick?
+      if Config.get(:debug_mode)
+        GameTime.get_tick_time
+        Benchmark.time_spent(:entity_movements) do
+          Entity.movements
+        end
+        Benchmark.time_spent(:render) do
+          GameEngine.render
+        end
+        Benchmark.tick
+      else
+        GameTime.get_tick_time
+        Entity.movements
+        GameEngine.render
+      end
+    end
 
-    GameEngine.render
+    Curses.timeout = GameTime.tick_timeout # ms
     char = Curses.getch
-    Entity.movements
   end
 end
 
-TICKRATE = 20 # per second
-TIMEOUT = 1000 / TICKRATE # ms
 main

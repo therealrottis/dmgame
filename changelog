@@ -1,3 +1,9 @@
+v0.1.4
+- added "lagtest" command
+- added code profiling
+- made all events on tick happen with same timestamp
+- fixed settings menu
+
 - added crunch_path, not used yet
 - entity code & config code cleanup
 - entities move now!!
