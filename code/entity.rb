@@ -595,4 +595,6 @@ class Entity
   def set_weapon(name)
     @weapon = @inventory.item(name)
   end
+
+  TICKRATE = GameTime::TICKRATE
 end

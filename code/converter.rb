@@ -224,22 +224,23 @@ module Converter
 
   def self.to_time(value)
     value = 0 if value.nil?
-    seconds = value
-    milliseconds = value * 1000
-    microseconds = milliseconds * 1000
-    minutes = value / 60.0
-    hours = minutes / 60.0
+    seconds = value.floor
+    milliseconds = ((value * 1000) % 1000).floor
+    microseconds = ((value * 1000000) % 1000).floor
+    
+    minutes = (value / 60.0).floor
+    hours = (minutes / 60.0).floor
     
     if hours >= 2
-      return "#{hours.floor}h, #{minutes.floor}min"
+      return "#{hours}h, #{minutes}min"
     elsif minutes >= 5
-      return "#{minutes.floor}min, #{seconds.floor}s"
+      return "#{minutes}min, #{seconds}s"
     elsif seconds >= 5
-      return "#{seconds.floor}s, #{milliseconds.floor}ms"
+      return "#{seconds}s, #{milliseconds}ms"
     elsif milliseconds >= 1
-      return "#{milliseconds.floor}ms"
-    elsif microseconds >= 1
-      return "#{microseconds.floor}us"
+      return "#{milliseconds}ms #{microseconds}us"
+    else#if microseconds >= 1
+      return "#{microseconds}us"
     end
   end
 end

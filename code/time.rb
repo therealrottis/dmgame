@@ -12,7 +12,7 @@ module GameTime
   end
 
   def self.time
-    true_time - @@paused_time
+    true_time - @@paused_time - paused_for
   end
   
   def self.get_tick_time
@@ -26,6 +26,10 @@ module GameTime
       @@tick_behind -= TIMEOUT - @@last_tick_length
     end
     @@last_tick_relative_length = @@last_tick_length / TIMEOUT
+
+    if @@tick_behind > 5000
+      puts("WARN: Running #{Converter.to_time(@@tick_behind / 1000)} behind, if this was unintentional please report this")
+    end
 
     @@tick_time = t
   end
@@ -50,14 +54,19 @@ module GameTime
   def self.pause_time
     @@pause_depth += 1
     return if @@pause_depth > 1 # already paused before
-    @@pause_start_time = time()
+    @@pause_start_time = true_time
   end
 
   def self.unpause_time
     @@pause_depth -= 1
     return if @@pause_depth > 0 # game still not unpaused
-    @@paused_time += time() - @@pause_start_time
+    @@paused_time += true_time - @@pause_start_time
     @@pause_start_time = nil
+  end
+
+  def self.paused_for
+    return 0 if @@pause_start_time.nil?
+    @@pause_start_time - true_time
   end
 
   private_class_method :pause_time, :unpause_time

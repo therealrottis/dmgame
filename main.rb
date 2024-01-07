@@ -1,8 +1,8 @@
-["entity", "engine", "item", 
+["time", "entity", "engine",
   "config", "console", "inventory", 
   "reader", "converter", "input", 
   "math_helpers", "menus", "wall", 
-  "room", "virtual_weapon", "time",
+  "room", "virtual_weapon", "item", 
   "path", "benchmark"].each do |codefile|
   require_relative("code/" + codefile)
 end
